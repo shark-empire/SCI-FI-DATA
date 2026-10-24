@@ -1,0 +1,97 @@
+/* Design tokens. Light is the default; dark applies via [data-theme="dark"] (set before first paint). */
+:root,
+:root[data-theme='light'] {
+  --bg: #f3f5fa;
+  --surface: #ffffff;
+  --surface-2: #e9edf6;
+  --ink: #0f1a3b;
+  --ink-2: #4a5678;
+  --line: #d8deec;
+  --line-strong: #b4bed6;
+
+  --brand: #3a3ae6;
+  --brand-strong: #2b2bc4;
+  --brand-ink: #ffffff;
+  --brand-soft: #e7e7fd;
+  --link: #2f2fcf;
+  --focus: #3a3ae6;
+
+  --gold: #ffc62e;
+  --gold-ink: #2b2100;
+
+  --inverse-bg: #0f1a3b;
+  --inverse-ink: #ffffff;
+  --inverse-ink-2: #b9c3e3;
+  --inverse-line: rgba(255, 255, 255, 0.18);
+
+  --ok: #0b7f52;
+  --ok-soft: #dcf4e7;
+  --warn: #8f5b00;
+  --warn-soft: #fff0cc;
+  --bad: #c0213a;
+  --bad-soft: #fde3e7;
+
+  --mtn: #ffcc00;
+  --mtn-ink: #1a1500;
+  --telecel: #e4001b;
+  --airteltigo: #1553d6;
+
+  --shadow: 0 1px 2px rgba(15, 26, 59, 0.06), 0 12px 32px -16px rgba(15, 26, 59, 0.22);
+  --ticket-cut: var(--bg);
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --bg: #0a1022;
+  --surface: #111a36;
+  --surface-2: #18234a;
+  --ink: #edf0fb;
+  --ink-2: #a3afcf;
+  --line: #26325f;
+  --line-strong: #3a4880;
+
+  --brand: #5959f3;
+  --brand-strong: #7373ff;
+  --brand-ink: #ffffff;
+  --brand-soft: #1d2765;
+  --link: #a9a9ff;
+  --focus: #a9a9ff;
+
+  --gold: #ffc62e;
+  --gold-ink: #2b2100;
+
+  --inverse-bg: #1a2560;
+  --inverse-ink: #ffffff;
+  --inverse-ink-2: #b9c3e3;
+  --inverse-line: rgba(255, 255, 255, 0.2);
+
+  --ok: #3ddc97;
+  --ok-soft: #0f3a2b;
+  --warn: #f5b93a;
+  --warn-soft: #3b2d0c;
+  --bad: #ff7b8e;
+  --bad-soft: #43151f;
+
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 16px 36px -18px rgba(0, 0, 0, 0.6);
+  color-scheme: dark;
+}
+
+:root {
+  --font-display: 'Bricolage Grotesque', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-body: 'Instrument Sans', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-code: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 22px;
+
+  --gutter: 20px;
+  --max: 1160px;
+  --header-h: 64px;
+}
+
+@media (min-width: 720px) {
+  :root {
+    --gutter: 32px;
+  }
+}
