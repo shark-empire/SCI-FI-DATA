@@ -1,0 +1,63 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Uses the lockfile when you have committed one, otherwise a plain install.
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+
+      # Optional: set these as repository variables (Settings > Secrets and variables > Actions > Variables)
+      # to override the defaults baked into src/config/env.js. All values end up in the public bundle.
+      - name: Build
+        run: npm run build
+        env:
+          VITE_PAYSTACK_PUBLIC_KEY: ${{ vars.VITE_PAYSTACK_PUBLIC_KEY }}
+          VITE_RESULTS_PAYSTACK_KEY: ${{ vars.VITE_RESULTS_PAYSTACK_KEY }}
+          VITE_DATA_SUPABASE_URL: ${{ vars.VITE_DATA_SUPABASE_URL }}
+          VITE_DATA_SUPABASE_ANON_KEY: ${{ vars.VITE_DATA_SUPABASE_ANON_KEY }}
+          VITE_ACCOUNTS_SUPABASE_URL: ${{ vars.VITE_ACCOUNTS_SUPABASE_URL }}
+          VITE_ACCOUNTS_SUPABASE_ANON_KEY: ${{ vars.VITE_ACCOUNTS_SUPABASE_ANON_KEY }}
+          VITE_OWNER_LOOKUP_URL: ${{ vars.VITE_OWNER_LOOKUP_URL }}
+          VITE_ORDER_LOOKUP_URL: ${{ vars.VITE_ORDER_LOOKUP_URL }}
+          VITE_WALLET_PURCHASE_URL: ${{ vars.VITE_WALLET_PURCHASE_URL }}
+          VITE_RESULTS_VERIFY_URL: ${{ vars.VITE_RESULTS_VERIFY_URL }}
+          VITE_DATA_TRANSFER_URL: ${{ vars.VITE_DATA_TRANSFER_URL }}
+          VITE_WHATSAPP_NUMBER: ${{ vars.VITE_WHATSAPP_NUMBER }}
+          VITE_SUPPORT_EMAIL: ${{ vars.VITE_SUPPORT_EMAIL }}
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
