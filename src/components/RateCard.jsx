@@ -8,10 +8,15 @@ import { Ticket } from './ui';
 
 const ROWS = 6;
 
-/** The hero's purchase module: pick a network, tap a bundle, go straight to checkout. */
-export default function RateCard() {
+/**
+ * The hero's purchase module: pick a network, tap a bundle, go straight to checkout.
+ * The network can be controlled by the parent (the home page cycles it); it falls back to its own state otherwise.
+ */
+export default function RateCard({ network: controlled, onNetwork }) {
   const { bundles, status, reload } = useBundles();
-  const [network, setNetwork] = useState('MTN');
+  const [own, setOwn] = useState('MTN');
+  const network = controlled ?? own;
+  const setNetwork = (id) => (onNetwork ? onNetwork(id) : setOwn(id));
 
   const list = useMemo(() => bundles.filter((b) => b.network === network), [bundles, network]);
   const shown = list.slice(0, ROWS);

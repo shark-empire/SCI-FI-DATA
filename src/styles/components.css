@@ -1,56 +1,65 @@
-/* ---------- Buttons ---------- */
+/* ---------- Buttons (pills, like the references) ---------- */
 .btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 44px;
-  padding: 0 20px;
+  min-height: 46px;
+  padding: 0 24px;
   border: 1px solid transparent;
-  border-radius: var(--r-md);
+  border-radius: var(--pill);
   font-family: var(--font-body);
   font-weight: 600;
   font-size: 0.97rem;
   line-height: 1;
   text-decoration: none;
   white-space: nowrap;
-  transition: background-color 0.15s, border-color 0.15s, transform 0.1s;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.3s, transform 0.2s var(--ease-out);
 }
 .btn:active:not(:disabled) {
-  transform: translateY(1px);
+  transform: scale(0.97);
 }
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 .btn--sm {
-  min-height: 36px;
-  padding: 0 14px;
+  min-height: 38px;
+  padding: 0 16px;
   font-size: 0.875rem;
-  border-radius: var(--r-sm);
 }
 .btn--lg {
-  min-height: 54px;
-  padding: 0 26px;
+  min-height: 58px;
+  padding: 0 32px;
   font-size: 1.05rem;
 }
 .btn--block {
   width: 100%;
 }
-.btn--primary {
-  background: var(--brand);
-  color: var(--brand-ink);
+.btn--primary,
+.btn--onDark {
+  background: var(--cta-bg);
+  color: var(--cta-ink);
+  box-shadow: 0 10px 28px -12px color-mix(in srgb, var(--tint) 80%, transparent);
 }
-.btn--primary:hover:not(:disabled) {
-  background: var(--brand-strong);
+.btn--primary:hover:not(:disabled),
+.btn--onDark:hover:not(:disabled) {
+  background: var(--cta-bg-hover);
+  box-shadow: 0 14px 34px -10px color-mix(in srgb, var(--tint) 90%, transparent);
 }
-.btn--secondary {
+.btn--secondary,
+.btn--onBrand {
   background: var(--surface);
   color: var(--ink);
   border-color: var(--line-strong);
+  -webkit-backdrop-filter: blur(14px) saturate(1.5);
+  backdrop-filter: blur(14px) saturate(1.5);
 }
-.btn--secondary:hover:not(:disabled) {
+.btn--secondary:hover:not(:disabled),
+.btn--onBrand:hover:not(:disabled) {
   background: var(--surface-2);
+  border-color: color-mix(in srgb, var(--tint) 60%, var(--line-strong));
 }
 .btn--ghost {
   background: transparent;
@@ -65,34 +74,21 @@
   color: var(--gold-ink);
 }
 .btn--gold:hover:not(:disabled) {
-  filter: brightness(1.05);
-}
-.btn--onDark {
-  background: #fff;
-  color: #0f1a3b;
-}
-.btn--onDark:hover:not(:disabled) {
-  background: #e9edf6;
-}
-.btn--onBrand {
-  background: transparent;
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.55);
-}
-.btn--onBrand:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.12);
+  filter: brightness(1.07);
 }
 
 .iconbtn {
+  position: relative;
   display: inline-grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border: 1px solid transparent;
-  border-radius: var(--r-sm);
+  border-radius: var(--pill);
   background: transparent;
   color: var(--ink-2);
   font-size: 1.2rem;
+  transition: background-color 0.2s, color 0.2s;
 }
 .iconbtn:hover {
   background: var(--surface-2);
@@ -120,8 +116,8 @@
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .field__control:focus-within {
-  border-color: var(--brand);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 22%, transparent);
+  border-color: var(--tint);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--tint) 24%, transparent);
 }
 .field__control.has-error {
   border-color: var(--bad);
@@ -204,8 +200,8 @@ select.field__input {
 .netchip {
   display: inline-flex;
   align-items: center;
-  padding: 2px 10px;
-  border-radius: 6px;
+  padding: 2px 11px;
+  border-radius: var(--pill);
   font-size: 0.8rem;
   font-weight: 700;
   line-height: 1.5;
@@ -219,11 +215,8 @@ select.field__input {
 
 /* ---------- Panels, headings ---------- */
 .panel {
-  background: var(--surface);
-  border: 1px solid var(--line);
   border-radius: var(--r-lg);
-  padding: 24px;
-  box-shadow: var(--shadow);
+  padding: 28px;
 }
 .panel__title {
   font-size: 1.15rem;
@@ -329,23 +322,23 @@ select.field__input {
   padding: 4px;
   gap: 4px;
   background: var(--surface-2);
-  border-radius: var(--r-md);
+  border-radius: var(--pill);
 }
 .segmented__item {
   flex: 1;
   min-height: 40px;
   padding: 0 12px;
   border: 0;
-  border-radius: 10px;
+  border-radius: var(--pill);
   background: transparent;
   color: var(--ink-2);
   font-weight: 600;
   font-size: 0.9rem;
+  transition: background-color 0.2s, color 0.2s;
 }
 .segmented__item.is-on {
-  background: var(--surface);
-  color: var(--ink);
-  box-shadow: 0 1px 3px rgba(15, 26, 59, 0.15);
+  background: var(--cta-bg);
+  color: var(--cta-ink);
 }
 .segmented__item:disabled {
   opacity: 0.45;
@@ -353,12 +346,13 @@ select.field__input {
 }
 
 .copybtn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 10px;
+  padding: 7px 12px;
   border: 1px solid var(--line-strong);
-  border-radius: 8px;
+  border-radius: var(--pill);
   background: var(--surface);
   color: var(--ink-2);
   font-size: 0.82rem;
@@ -372,10 +366,7 @@ select.field__input {
 /* ---------- Ticket (the voucher motif) ---------- */
 .ticket {
   position: relative;
-  background: var(--surface);
-  border: 1px solid var(--line);
   border-radius: var(--r-lg);
-  box-shadow: var(--shadow);
 }
 .ticket__top {
   padding: 22px 22px 18px;
@@ -392,31 +383,13 @@ select.field__input {
   margin: 0 18px;
   border-top: 2px dashed var(--line-strong);
 }
-.ticket__tear::before,
-.ticket__tear::after {
-  content: '';
-  position: absolute;
-  top: -12px;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--ticket-cut);
-  border: 1px solid var(--line);
-}
-.ticket__tear::before {
-  left: -30px;
-  clip-path: inset(-2px -2px -2px 50%);
-}
-.ticket__tear::after {
-  right: -30px;
-  clip-path: inset(-2px 50% -2px -2px);
-}
+/* The perforation is a dashed line; the notches were dropped because a solid cut-out looks wrong on glass. */
 
 /* ---------- Toasts ---------- */
 .toasts {
   position: fixed;
   z-index: 200;
-  top: calc(var(--header-h) + 12px);
+  top: calc(var(--header-h) + 28px);
   right: 16px;
   display: flex;
   flex-direction: column;
@@ -428,19 +401,15 @@ select.field__input {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 12px 12px 12px 14px;
-  background: var(--surface);
-  border: 1px solid var(--line-strong);
-  border-left-width: 4px;
+  padding: 12px 14px 12px 16px;
   border-radius: var(--r-md);
-  box-shadow: var(--shadow);
   font-size: 0.92rem;
   pointer-events: auto;
   animation: toastin 0.2s ease-out;
 }
-.toast--ok { border-left-color: var(--ok); }
-.toast--err { border-left-color: var(--bad); }
-.toast--info { border-left-color: var(--brand); }
+/* The glass takes the colour of the message. */
+.toast--ok { --tint: var(--ok); }
+.toast--err { --tint: var(--bad); }
 .toast__icon { flex: none; margin-top: 3px; font-size: 1.1rem; }
 .toast--ok .toast__icon { color: var(--ok); }
 .toast--err .toast__icon { color: var(--bad); }

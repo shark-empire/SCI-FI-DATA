@@ -8,7 +8,7 @@ One React site that replaces three separate projects:
 | Babor (WAEC results-checker PIN store) | `/results` |
 | Babor-Api (accounts, wallet, orders, developer page) | `/login`, `/signup`, `/account/*`, `/developers` |
 
-Stack: Vite 7, React 19, `react-icons`. No UI framework, plain CSS with design tokens (light and dark themes).
+Stack: Vite 7, React 19, `react-icons`. No UI framework, plain CSS with design tokens (dark and light themes).
 
 ## Run it
 
@@ -66,18 +66,29 @@ Everything is optional. The defaults in `src/config/env.js` are the values found
 - Paystack metadata and webhook payloads are unchanged, so your existing automations keep working.
 - The NEXTSTEP promo flyer in the source archive was not used.
 
+## Look and feel
+
+The design is dark-first with a light theme (the toggle is in the header; a saved choice wins, and so does a light system setting).
+
+- **Tinted liquid glass.** Panels, the header, the footer, the phone tab bar and the toasts are translucent glass: a blurred backdrop, a lit top-left edge and a tint. The tint is the colour of the glass and it follows what the visitor is looking at: the home headline cycles MTN, Telecel and AirtelTigo once and re-colours the whole page, Buy data takes the colour of the chosen network, and Results checkers is violet. Change the colours in `src/styles/tokens.css` (`[data-tint='mtn']` and friends).
+- **Live layer** (`src/lib/live.js`, mounted by `src/components/LiveFX.jsx`): the backdrop orbs drift toward the pointer, a soft spotlight follows it, the glass under the pointer catches a highlight, cards lean toward it, the main buttons lean toward a nearby cursor, and every click sends out a ring with a few sparks, a ripple inside the pressed control and a small spring through the backdrop. It is one animation loop that sleeps when nothing moves. It is switched off for visitors who ask for reduced motion, and hover effects are skipped on touch screens (taps still get the click effects). To remove the whole layer, delete `<LiveFX />` from `src/App.jsx`.
+- **Type and shape.** Large light-weight display type, pill buttons and chips, and corners that get softer as surfaces get bigger. Fonts load from Google Fonts (Bricolage Grotesque and Instrument Sans); the page still works without them.
+- **Where things are:** `tokens.css` (colours, radii, the glass recipe numbers), `glass.css` (the backdrop, the glass surfaces and the click and highlight effects), `home.css` (the home page), `components.css` and `layout.css` (everything shared).
+
+The look takes its ideas from the structure and public design language of shopify.com and nas.com (big light display type, pill buttons, a rotating hero word, short lowercase step headings, a stat band, chip rows). No logos, images, copy or brand assets from either site are used.
+
 ## Project layout
 
 ```
 src/
   config/       env.js (runtime config), site.js (brand, networks, FAQ, results products)
-  lib/          format, phone validation, ids/references, storage, rate limit
+  lib/          format, phone validation, ids/references, storage, rate limit, live (pointer and click effects)
   services/     rest.js (Supabase), webhooks.js, paystack.js
   context/      Theme, Toast, Auth
-  hooks/        useBundles, usePageTitle
-  components/   ui.jsx, Logo, RateCard, layout/ (Header, Footer, TabBar, layouts)
+  hooks/        useBundles, usePageTitle, useTint (sets the colour of the glass)
+  components/   ui.jsx, Logo, RateCard, LiveFX (backdrop + click layer), layout/ (Header, Footer, TabBar, layouts)
   pages/        public pages, account/ (signed in), admin/
-  styles/       tokens, base, components, layout, pages
+  styles/       tokens, base, components, layout, pages, home, glass
   router.jsx    small hash router
   App.jsx       providers and route tables
 ```

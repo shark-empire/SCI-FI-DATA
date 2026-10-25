@@ -4,6 +4,7 @@ import { Button, Callout, CopyButton, PageHeader, Spinner, TextField, Ticket } f
 import { useToast } from '../context/Toast';
 import { useAuth } from '../context/Auth';
 import { usePageTitle } from '../hooks/usePageTitle';
+import { useTint } from '../hooks/useTint';
 import { config } from '../config/env';
 import {
   RESULTS_BULK_PRICE,
@@ -24,6 +25,7 @@ const isTestKey = config.paystack.resultsKey.startsWith('pk_test');
 
 export default function Results() {
   usePageTitle('Results checkers');
+  useTint('results');
   const toast = useToast();
   const { user } = useAuth();
 

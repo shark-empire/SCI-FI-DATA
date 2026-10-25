@@ -1,15 +1,15 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { local } from '../lib/storage';
 
-const ThemeContext = createContext({ theme: 'light', toggle: () => {} });
+const ThemeContext = createContext({ theme: 'dark', toggle: () => {} });
 
 export function ThemeProvider({ children }) {
-  const [theme, setTheme] = useState(() => document.documentElement.dataset.theme || 'light');
+  const [theme, setTheme] = useState(() => document.documentElement.dataset.theme || 'dark');
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', theme === 'dark' ? '#0A1022' : '#3A3AE6');
+    if (meta) meta.setAttribute('content', theme === 'dark' ? '#04090B' : '#E8F0EE');
   }, [theme]);
 
   const toggle = useCallback(() => {

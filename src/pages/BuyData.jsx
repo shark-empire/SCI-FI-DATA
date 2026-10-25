@@ -5,6 +5,7 @@ import { useAuth } from '../context/Auth';
 import { useToast } from '../context/Toast';
 import { useBundles } from '../hooks/useBundles';
 import { usePageTitle } from '../hooks/usePageTitle';
+import { useTint } from '../hooks/useTint';
 import { useLocation, useNavigate } from '../router';
 import { config } from '../config/env';
 import { NETWORKS, networkById } from '../config/site';
@@ -25,6 +26,7 @@ export default function BuyData() {
 
   const [network, setNetwork] = useState(search.get('network') || null);
   const [bundleId, setBundleId] = useState(search.get('bundle') || null);
+  useTint(NETWORKS.find((n) => n.id === network)?.meta);
   const [phone, setPhone] = useState('');
   const [touched, setTouched] = useState(false);
   const [payWith, setPayWith] = useState('paystack');

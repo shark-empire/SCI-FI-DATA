@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './context/Auth';
 import SiteLayout from './components/layout/SiteLayout';
 import AccountLayout from './components/layout/AccountLayout';
 import { Spinner } from './components/ui';
+import LiveFX from './components/LiveFX';
 import Home from './pages/Home';
 import BuyData from './pages/BuyData';
 import NotFound from './pages/NotFound';
@@ -102,6 +103,7 @@ function Routes() {
 export default function App() {
   return (
     <ThemeProvider>
+      <LiveFX />
       <ToastProvider>
         <AuthProvider>
           <Router>

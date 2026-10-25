@@ -9,9 +9,14 @@ html {
   scroll-behavior: smooth;
 }
 
+html {
+  background: var(--bg);
+}
+
 body {
   margin: 0;
-  background: var(--bg);
+  /* The animated backdrop (.aurora) sits behind the page, so the body stays see-through. */
+  background: transparent;
   color: var(--ink);
   font-family: var(--font-body);
   font-size: 1rem;
@@ -26,9 +31,9 @@ h3,
 h4 {
   margin: 0;
   font-family: var(--font-display);
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.12;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
   text-wrap: balance;
 }
 
@@ -78,9 +83,14 @@ table {
 }
 
 :focus-visible {
-  outline: 3px solid var(--focus);
-  outline-offset: 2px;
-  border-radius: 6px;
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--tint) 45%, transparent);
+  color: var(--ink);
 }
 
 [tabindex='-1']:focus {
