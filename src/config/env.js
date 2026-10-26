@@ -34,10 +34,10 @@ export const config = {
 
   // Accounts, wallet and account orders (the Babor-Api React project).
   accountsBackend: {
-    url: val('VITE_ACCOUNTS_SUPABASE_URL', 'https://ixezaagxxptcedteyrac.supabase.co'),
+    url: val('VITE_ACCOUNTS_SUPABASE_URL', 'https://zhinkuoqxsmotnbsjdue.supabase.co'),
     anon: val(
       'VITE_ACCOUNTS_SUPABASE_ANON_KEY',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4ZXphYWd4eHB0Y2VkdGV5cmFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4NTI5NzIsImV4cCI6MjA5NzQyODk3Mn0.J8biZ_9TsupriNk8z1jXiSVzehEFOiTz8PHqGH4QUHs',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpoaW5rdW9xeHNtb3RuYnNqZHVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzOTc1MzIsImV4cCI6MjA4Nzk3MzUzMn0.Kw5BDJDH9WOAiE3a-P6ylQiseErYG-mHCFi5fgamnUY',
     ),
   },
 
