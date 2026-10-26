@@ -91,6 +91,7 @@
 .how__item,
 .feature,
 .statband,
+.storehead,
 .toast {
   isolation: isolate;
   background:
@@ -107,7 +108,7 @@
 }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .header, .footer, .tabbar, .panel, .ticket, .offer, .account__who, .stat, .walletcard, .order, .contactcard, .endpoint,
-  .codecard, .cta__inner, .how__item, .feature, .statband, .toast {
+  .codecard, .cta__inner, .how__item, .feature, .statband, .storehead, .toast {
     background-color: color-mix(in srgb, var(--bg) 84%, var(--tint));
   }
 }
@@ -125,6 +126,7 @@
 .how__item,
 .feature,
 .statband,
+.storehead,
 .footer,
 .toast {
   position: relative;
@@ -151,6 +153,8 @@
 .nettile,
 .bundle,
 .product,
+.mbundle,
+.storecard,
 .quick__item,
 .recent__chip,
 .stepper {
@@ -161,6 +165,8 @@
 .nettile:hover,
 .bundle:hover:not(:disabled),
 .product:hover,
+.mbundle:hover,
+.storecard:hover,
 .quick__item:hover {
   background: color-mix(in srgb, var(--tint) 9%, var(--surface-2));
   border-color: var(--line-strong);
@@ -168,7 +174,8 @@
 .nettile.is-on,
 .bundle.is-on,
 .product.is-on,
-.quick__item.is-on {
+.quick__item.is-on,
+.swatch.is-on {
   background: var(--brand-soft);
   border-color: color-mix(in srgb, var(--tint) 75%, white);
   box-shadow:
@@ -210,6 +217,8 @@
   .nettile,
   .bundle,
   .product,
+  .mbundle,
+  .storecard,
   .stat,
   .walletcard,
   .how__item,

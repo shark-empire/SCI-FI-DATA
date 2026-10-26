@@ -15,7 +15,7 @@ import {
 } from '../config/site';
 import { money } from '../lib/format';
 import { resultsRef } from '../lib/ids';
-import { validatePhone, digitsOnly } from '../lib/phone';
+import { validatePhone, digitsOnly, cleanPhone } from '../lib/phone';
 import { fetchResultsPins } from '../services/webhooks';
 import { loadPaystack, openPaystack } from '../services/paystack';
 
@@ -268,11 +268,11 @@ export default function Results() {
                 type="tel"
                 inputMode="numeric"
                 autoComplete="tel-national"
-                maxLength={10}
+                maxLength={16}
                 prefix="+233"
                 placeholder="0541234567"
                 value={phone}
-                onChange={(e) => setPhone(digitsOnly(e.target.value))}
+                onChange={(e) => setPhone(cleanPhone(e.target.value))}
                 error={touched && !phoneCheck.ok ? phoneCheck.msg : undefined}
                 hint="WhatsApp or SMS, in case we need to reach you."
               />

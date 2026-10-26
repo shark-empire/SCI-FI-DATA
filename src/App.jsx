@@ -3,8 +3,10 @@ import { Router, useLocation, useNavigate } from './router';
 import { ThemeProvider } from './context/Theme';
 import { ToastProvider } from './context/Toast';
 import { AuthProvider, useAuth } from './context/Auth';
+import { SellerProvider, useSeller } from './context/Seller';
 import SiteLayout from './components/layout/SiteLayout';
 import AccountLayout from './components/layout/AccountLayout';
+import SellerLayout from './components/layout/SellerLayout';
 import { Spinner } from './components/ui';
 import LiveFX from './components/LiveFX';
 import Home from './pages/Home';
@@ -28,6 +30,16 @@ const Wallet = lazy(() => import('./pages/account/Wallet'));
 const Fund = lazy(() => import('./pages/account/Fund'));
 const Settings = lazy(() => import('./pages/account/Settings'));
 const Transfer = lazy(() => import('./pages/admin/Transfer'));
+// Reseller stores (the Store project).
+const Marketplace = lazy(() => import('./pages/stores/Marketplace'));
+const Stores = lazy(() => import('./pages/stores/Stores'));
+const Storefront = lazy(() => import('./pages/stores/Storefront'));
+const BundleDetail = lazy(() => import('./pages/stores/BundleDetail'));
+const StoreBuilder = lazy(() => import('./pages/stores/StoreBuilder'));
+const SellerLogin = lazy(() => import('./pages/stores/SellerLogin'));
+const SellerOverview = lazy(() => import('./pages/seller/Overview'));
+const SellerOrders = lazy(() => import('./pages/seller/Orders'));
+const SellerBundles = lazy(() => import('./pages/seller/Bundles'));
 
 const PUBLIC_ROUTES = {
   '/': Home,
@@ -43,6 +55,22 @@ const PUBLIC_ROUTES = {
   '/login': Login,
   '/signup': Signup,
   '/admin/transfer': Transfer,
+  '/marketplace': Marketplace,
+  '/stores': Stores,
+  '/store-builder': StoreBuilder,
+  '/seller/login': SellerLogin,
+};
+
+// Addresses with one variable part: /store/kwame-data-hub, /bundle/12. The page receives it as `param`.
+const PARAM_ROUTES = [
+  { prefix: '/store/', Page: Storefront },
+  { prefix: '/bundle/', Page: BundleDetail },
+];
+
+const SELLER_ROUTES = {
+  '/seller': SellerOverview,
+  '/seller/orders': SellerOrders,
+  '/seller/bundles': SellerBundles,
 };
 
 const ACCOUNT_ROUTES = {
@@ -73,13 +101,55 @@ function RequireAuth({ children }) {
   return children;
 }
 
+/** Same idea for store owners, who sign in to a separate backend. */
+function RequireSeller({ children }) {
+  const { seller, ready } = useSeller();
+  const { path } = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (ready && !seller) navigate(`/seller/login?next=${encodeURIComponent(path)}`, { replace: true });
+  }, [ready, seller, path, navigate]);
+
+  if (!ready || !seller) return <Loading />;
+  return children;
+}
+
+function matchParam(path) {
+  for (const { prefix, Page } of PARAM_ROUTES) {
+    if (path.startsWith(prefix)) {
+      const rest = path.slice(prefix.length);
+      if (rest && !rest.includes('/')) {
+        try {
+          return { Page, param: decodeURIComponent(rest) };
+        } catch {
+          return null;
+        }
+      }
+    }
+  }
+  return null;
+}
+
 function Routes() {
   const { path } = useLocation();
   const Account = ACCOUNT_ROUTES[path];
+  const Seller = SELLER_ROUTES[path];
   const Page = PUBLIC_ROUTES[path];
+  const withParam = !Account && !Seller && !Page ? matchParam(path) : null;
 
   let content;
-  if (Account) {
+  if (Seller) {
+    content = (
+      <RequireSeller>
+        <SellerLayout>
+          <Seller />
+        </SellerLayout>
+      </RequireSeller>
+    );
+  } else if (withParam) {
+    content = <withParam.Page param={withParam.param} />;
+  } else if (Account) {
     content = (
       <RequireAuth>
         <AccountLayout>
@@ -106,9 +176,11 @@ export default function App() {
       <LiveFX />
       <ToastProvider>
         <AuthProvider>
-          <Router>
-            <Routes />
-          </Router>
+          <SellerProvider>
+            <Router>
+              <Routes />
+            </Router>
+          </SellerProvider>
         </AuthProvider>
       </ToastProvider>
     </ThemeProvider>

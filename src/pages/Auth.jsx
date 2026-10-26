@@ -6,7 +6,7 @@ import { useToast } from '../context/Toast';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { Link, useLocation, useNavigate } from '../router';
 import { checkRate } from '../lib/rateLimit';
-import { digitsOnly, validatePhone } from '../lib/phone';
+import { validatePhone, cleanPhone } from '../lib/phone';
 
 function PasswordField({ label, value, onChange, ...rest }) {
   const [show, setShow] = useState(false);
@@ -97,7 +97,7 @@ export function Signup() {
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [touched, setTouched] = useState(false);
-  const set = (k) => (e) => setF((p) => ({ ...p, [k]: k === 'phone' ? digitsOnly(e.target.value) : e.target.value }));
+  const set = (k) => (e) => setF((p) => ({ ...p, [k]: k === 'phone' ? cleanPhone(e.target.value) : e.target.value }));
 
   useEffect(() => {
     if (user) navigate('/account', { replace: true });
@@ -158,7 +158,7 @@ export function Signup() {
           <TextField label="Last name" autoComplete="family-name" value={f.last} onChange={set('last')} error={show('last')} />
         </div>
         {method === 'phone' ? (
-          <TextField label="Ghana phone number" type="tel" inputMode="numeric" maxLength={10} prefix="+233" autoComplete="tel-national" placeholder="0541234567" value={f.phone} onChange={set('phone')} error={show('contact')} hint="You will use this number to log in." />
+          <TextField label="Ghana phone number" type="tel" inputMode="numeric" maxLength={16} prefix="+233" autoComplete="tel-national" placeholder="0541234567" value={f.phone} onChange={set('phone')} error={show('contact')} hint="You will use this number to log in." />
         ) : (
           <TextField label="Email address" type="email" autoComplete="email" placeholder="you@example.com" value={f.email} onChange={set('email')} error={show('contact')} />
         )}

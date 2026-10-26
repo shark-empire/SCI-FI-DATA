@@ -11,7 +11,7 @@ import { config } from '../config/env';
 import { NETWORKS, networkById } from '../config/site';
 import { money, splitSize } from '../lib/format';
 import { dataRef, uuid } from '../lib/ids';
-import { validatePhone, digitsOnly } from '../lib/phone';
+import { validatePhone, digitsOnly, cleanPhone } from '../lib/phone';
 import { recentRefs } from '../lib/storage';
 import { lookupOwner, purchaseWithWallet, walletPaymentsEnabled } from '../services/webhooks';
 import { loadPaystack, openPaystack } from '../services/paystack';
@@ -218,12 +218,12 @@ export default function BuyData() {
               type="tel"
               inputMode="numeric"
               autoComplete="tel-national"
-              maxLength={10}
+              maxLength={16}
               placeholder="0541234567"
               prefix="+233"
               value={phone}
               ref={phoneRef}
-              onChange={(e) => setPhone(digitsOnly(e.target.value))}
+              onChange={(e) => setPhone(cleanPhone(e.target.value))}
               onBlur={() => setTouched(true)}
               error={touched && phone && !phoneCheck.ok ? phoneCheck.msg : undefined}
               hint="Double-check the number. Data sent to the wrong number cannot be recalled."

@@ -4,6 +4,16 @@ import { config } from '../../config/env';
 import { site } from '../../config/site';
 import Logo from '../Logo';
 
+const STORE_COLUMN = {
+  title: 'Stores',
+  links: [
+    { to: '/marketplace', label: 'Marketplace' },
+    { to: '/stores', label: 'All stores' },
+    { to: '/store-builder', label: 'Open your store' },
+    { to: '/seller', label: 'Seller dashboard' },
+  ],
+};
+
 const COLUMNS = [
   {
     title: 'Shop',
@@ -41,7 +51,7 @@ const COLUMNS = [
 export default function Footer() {
   return (
     <footer className="footer">
-      <div className="container footer__grid">
+      <div className={`container footer__grid${config.stores.enabled ? ' footer__grid--5' : ''}`}>
         <div className="footer__brand">
           <Logo />
           <p className="footer__about">Data bundles and WAEC results checkers for Ghana, paid for with Mobile Money or card.</p>
@@ -59,7 +69,7 @@ export default function Footer() {
           </ul>
         </div>
 
-        {COLUMNS.map((col) => (
+        {(config.stores.enabled ? [COLUMNS[0], STORE_COLUMN, ...COLUMNS.slice(1)] : COLUMNS).map((col) => (
           <nav key={col.title} className="footer__col" aria-label={col.title}>
             <h2 className="footer__title">{col.title}</h2>
             <ul>

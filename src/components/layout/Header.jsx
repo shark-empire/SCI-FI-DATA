@@ -31,7 +31,7 @@ export default function Header() {
           <Logo />
         </Link>
 
-        <nav className="header__nav" aria-label="Main">
+        <nav className={`header__nav${MAIN_NAV.length > 5 ? ' header__nav--many' : ''}`} aria-label="Main">
           {MAIN_NAV.map((n) => (
             <NavLink key={n.to} to={n.to} className="header__link">
               {n.label}

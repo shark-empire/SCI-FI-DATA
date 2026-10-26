@@ -18,14 +18,14 @@
 // Elements that catch the highlight. The first hover tags them with .fx-lit (see glass.css).
 const LIT =
   '.header, .footer, .tabbar, .panel, .ticket, .offer, .account__who, .stat, .walletcard, .order, .contactcard, .endpoint, .codecard, .cta__inner, ' +
-  '.how__item, .feature, .statband, .nettile, .bundle, .product, .quick__item, .recent__chip, .toast, .ratecard__link, .chip';
+  '.how__item, .feature, .statband, .nettile, .bundle, .product, .mbundle, .storecard, .storehead, .quick__item, .recent__chip, .toast, .ratecard__link, .chip';
 
 // Elements that lean toward the pointer.
-const TILT = '.ratecard, .offer, .nettile, .bundle, .product, .stat, .walletcard, .how__item, .feature, .contactcard, .order';
+const TILT = '.ratecard, .offer, .nettile, .bundle, .product, .mbundle, .storecard, .stat, .walletcard, .how__item, .feature, .contactcard, .order';
 
 // Controls that show a ripple when pressed.
 const RIPPLE =
-  '.btn, .iconbtn, .ratecard__tab, .nettile, .bundle, .product, .quick__item, .recent__chip, .segmented__item, .account__link, .tabbar__item, ' +
+  '.btn, .iconbtn, .ratecard__tab, .nettile, .bundle, .product, .mbundle, .storecard, .swatch, .quick__item, .recent__chip, .segmented__item, .account__link, .tabbar__item, ' +
   '.header__link, .copybtn, .chip, .rot, .stepper button, .how__item, .feature, .ratecard__link';
 
 const clamp = (n, a, b) => Math.min(b, Math.max(a, n));

@@ -4,7 +4,7 @@ import { Button, Callout, PageHeader, TextField } from '../../components/ui';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { sendDataTransfer, dataTransferEnabled } from '../../services/webhooks';
 import { transferRef } from '../../lib/ids';
-import { digitsOnly } from '../../lib/phone';
+import { cleanPhone } from '../../lib/phone';
 
 const COOLDOWN_MS = 4000;
 
@@ -72,7 +72,7 @@ export default function Transfer() {
       <PageHeader title="Data transfer" lead="Send data units to any receiver. For staff use." />
       <form className="panel settingsform" onSubmit={submit}>
         <TextField label="Admin key" type="password" autoComplete="off" value={adminKey} onChange={(e) => setAdminKey(e.target.value)} hint="Sent with the request so the webhook can verify you." />
-        <TextField label="Receiver number" type="tel" inputMode="numeric" maxLength={10} prefix="+233" placeholder="0541234567" value={phone} onChange={(e) => setPhone(digitsOnly(e.target.value))} />
+        <TextField label="Receiver number" type="tel" inputMode="numeric" maxLength={16} prefix="+233" placeholder="0541234567" value={phone} onChange={(e) => setPhone(cleanPhone(e.target.value))} />
         <TextField label="Amount (GB)" type="number" min="0" step="0.1" placeholder="1" value={gb} onChange={(e) => setGb(e.target.value)} />
         <div><Button type="submit" loading={busy}>Send data</Button></div>
         {result && (

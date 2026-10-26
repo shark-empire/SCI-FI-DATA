@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { LuCode, LuCreditCard, LuGraduationCap, LuLandmark, LuPackage, LuSmartphone, LuWallet } from 'react-icons/lu';
+import { LuCode, LuCreditCard, LuGraduationCap, LuLandmark, LuLayoutDashboard, LuLink, LuPackage, LuSmartphone, LuStore, LuWallet } from 'react-icons/lu';
 import { Button, NetworkChip } from '../components/ui';
 import RateCard from '../components/RateCard';
 import { Link } from '../router';
@@ -8,6 +8,7 @@ import { useTint } from '../hooks/useTint';
 import { useBundles } from '../hooks/useBundles';
 import { site, FAQ, NETWORKS, RESULTS_BULK_PRICE, RESULTS_BULK_THRESHOLD, RESULTS_PRODUCTS, RESULTS_REGULAR_PRICE } from '../config/site';
 import { money } from '../lib/format';
+import { config } from '../config/env';
 
 const STEPS = [
   { verb: 'choose.', text: 'Pick MTN, Telecel or AirtelTigo, then the size that suits you.' },
@@ -23,6 +24,7 @@ const PAYMENTS = [
 ];
 const SHORTCUTS = [
   { icon: LuGraduationCap, label: 'Results checkers', to: '/results' },
+  ...(config.stores.enabled ? [{ icon: LuStore, label: 'Marketplace', to: '/marketplace' }] : []),
   { icon: LuPackage, label: 'Track an order', to: '/track' },
   { icon: LuWallet, label: 'Wallet', to: '/account/wallet' },
 ];
@@ -194,6 +196,34 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {config.stores.enabled && (
+        <section className="section">
+          <div className="container split">
+            <div className="split__text">
+              <h2 className="section__title">Sell data under your own name.</h2>
+              <ul className="checklist">
+                <li><LuStore aria-hidden="true" /> Open a store in a couple of minutes: a name, a colour and your own prices.</li>
+                <li><LuLink aria-hidden="true" /> Share one link. Customers pay by Mobile Money or card through Paystack.</li>
+                <li><LuLayoutDashboard aria-hidden="true" /> Follow every order from your seller dashboard.</li>
+              </ul>
+              <div className="split__cta">
+                <Button to="/store-builder" data-magnetic>Open your store</Button>
+                <Button to="/marketplace" variant="secondary" data-magnetic>Browse the marketplace</Button>
+              </div>
+            </div>
+            <figure className="codecard">
+              <figcaption className="codecard__cap">One link for your customers</figcaption>
+              <pre className="codecard__pre" tabIndex={0}><code>{`https://your-site.com/#/store/your-store-name
+
+  choose a bundle
+  enter the number to top up
+  pay with Mobile Money or card
+  your store delivers it`}</code></pre>
+            </figure>
+          </div>
+        </section>
+      )}
 
       <section className="section">
         <div className="container split">
