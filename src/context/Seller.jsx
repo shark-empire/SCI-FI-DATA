@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { storesApi } from '../services/rest';
 import { config } from '../config/env';
 import { session } from '../lib/storage';
+import { loginError, signupError } from '../lib/authErrors';
 
 // Store owners sign in to the Store project, which is a different Supabase project from the customer accounts.
 // Their session is kept separately so signing in as one never signs you out of the other.
@@ -79,9 +80,12 @@ export function SellerProvider({ children }) {
 
   const signIn = useCallback(
     async (email, password) => {
-      const d = await storesApi.auth.signIn(email.trim(), password).catch(() => {
-        throw new Error('Wrong email or password.');
-      });
+      let d;
+      try {
+        d = await storesApi.auth.signIn(email.trim(), password);
+      } catch (err) {
+        throw Object.assign(new Error(loginError(err, 'email', email.trim())), { status: err.status, code: err.code });
+      }
       store(d.access_token, d.refresh_token);
       const next = toSeller(d.user, d.access_token);
       setSeller(next);
@@ -92,9 +96,21 @@ export function SellerProvider({ children }) {
 
   const signUp = useCallback(
     async ({ fullName, phone, email, password }) => {
-      const d = await storesApi.auth.signUp(email.trim(), password, { full_name: fullName, phone: phone || '' });
-      // With email confirmation switched on there is no session until the link is opened.
-      if (!d.access_token) return { needsConfirmation: true };
+      let d;
+      try {
+        d = await storesApi.auth.signUp(email.trim(), password, { full_name: fullName, phone: phone || '' });
+      } catch (err) {
+        throw Object.assign(new Error(signupError(err, 'email')), { status: err.status, code: err.code });
+      }
+      // With email confirmation switched on there is no session until the link is opened. (Supabase then answers
+      // with the bare user, and an address that is already registered has no identities.)
+      if (!d.access_token) {
+        const created = d.user || d;
+        if (Array.isArray(created.identities) && created.identities.length === 0) {
+          throw new Error(signupError({ code: 'user_already_exists' }, 'email'));
+        }
+        return { needsConfirmation: true };
+      }
       store(d.access_token, d.refresh_token);
       const next = toSeller(d.user || { id: '', email }, d.access_token);
       setSeller(next);

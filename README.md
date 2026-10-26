@@ -94,14 +94,19 @@ Sellers sign in to the Store project, which is a different Supabase project from
 4. **Rotate the exposed admin webhook.** The original `api.html` had the Make.com transfer webhook and an admin key in public source. Treat them as compromised and regenerate them. This site does not embed them. To use the admin page, set `VITE_DATA_TRANSFER_URL`; it is sent an `admin_key` that you type in, and it is still only a courtesy gate, so enforce authorisation in the webhook itself.
 5. **Use one Supabase project.** The data catalogue and the account/wallet system point at two different Supabase projects. Wallet purchases send the catalogue's `bundle_id`, so the wallet flow has to understand those ids. Moving everything to one project (set both URL/key pairs to the same values) avoids this.
 6. **Row-level security.** The anon keys are public by design, so your tables must have RLS policies that only let users read their own `orders`, `wallet_transactions` and `users` rows, and never let the browser change a balance. The original client credited wallets directly from the browser; that was removed, and the wallet balance is now only read, and refreshed after payment.
-7. **Store orders need a verifying backend** (see Stores above). Without it, a paid store order stays `pending` forever.
-8. **Brand.** `public/logo.svg` and `public/favicon.svg` are placeholder marks. Replace them with your own.
+7. **Sign-up and login need the right Supabase auth settings.** In each Supabase project open *Authentication → Providers → Email*:
+   - **Confirm email must be OFF** for phone-number accounts. They sign in with a made-up address (`0541234567@sci-fidata.com`) that has no inbox, so a confirmation email can never be opened. With it ON, phone sign-ups are created but cannot log in (the site then tells the customer to message support).
+   - With **Confirm email ON**, email sign-ups still work: the site shows "Check your email" and offers to resend. Until the link is opened, login says "Your email isn't confirmed yet".
+   - Supabase's built-in email sender allows only a few emails an hour. When that limit is hit, sign-up says so. For real traffic, add your own SMTP provider under *Authentication → SMTP Settings*.
+   - The `users` table needs an insert policy that lets a signed-in user create the row whose `id` is their own, and (if `phone` is unique) must allow several rows with no phone. The site tries a few shapes and still signs the customer in if the row is refused; the row is rebuilt on their next login.
+8. **Store orders need a verifying backend** (see Stores above). Without it, a paid store order stays `pending` forever.
+9. **Brand.** `public/logo.svg` and `public/favicon.svg` are placeholder marks. Replace them with your own.
 
 ## What changed from the originals
 
 - Fake or insecure pieces were dropped rather than carried over: client-side wallet crediting, base64 "password" handling, demo-mode fallback data, the embedded admin key, the sample API key on the developer page, invented statistics, and the lookup-by-phone order search (it exposed other people's orders).
 - Prices are never made up. If the bundle catalogue cannot be loaded the page shows an error with a retry button.
-- Sign-in uses Supabase Auth over its REST API; the session lives in `sessionStorage` and refreshes itself on a 401.
+- Sign-in uses Supabase Auth over its REST API; the session lives in `sessionStorage` and refreshes itself on a 401. Login and sign-up errors say what actually went wrong (unconfirmed email, wrong password, already registered, rate limit, offline) instead of one generic message.
 - Paystack metadata and webhook payloads are unchanged, so your existing automations keep working.
 - The NEXTSTEP promo flyer in the source archive was not used.
 

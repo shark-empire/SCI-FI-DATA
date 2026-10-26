@@ -1116,3 +1116,15 @@
     text-align: left;
   }
 }
+
+/* A text-styled button, for an inline action inside a sentence. */
+.linkbtn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--link);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}

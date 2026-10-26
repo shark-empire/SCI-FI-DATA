@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { LuEye, LuEyeOff } from 'react-icons/lu';
+import { LuCircleAlert, LuEye, LuEyeOff, LuMailCheck, LuMessageCircle } from 'react-icons/lu';
 import { Button, Callout, Segmented, TextField } from '../components/ui';
 import { useAuth } from '../context/Auth';
 import { useToast } from '../context/Toast';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { Link, useLocation, useNavigate } from '../router';
+import { site } from '../config/site';
 import { checkRate } from '../lib/rateLimit';
 import { validatePhone, cleanPhone } from '../lib/phone';
 
@@ -31,7 +32,7 @@ const safeNext = (next) => (next && next.startsWith('/') && !next.startsWith('//
 
 export function Login() {
   usePageTitle('Log in');
-  const { signIn, user } = useAuth();
+  const { signIn, resendConfirmation, user } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const { search } = useLocation();
@@ -39,6 +40,7 @@ export function Login() {
   const [id, setId] = useState('');
   const [pw, setPw] = useState('');
   const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState(null); // { message, unconfirmedEmail? }
 
   useEffect(() => {
     if (user) navigate(next, { replace: true });
@@ -46,18 +48,28 @@ export function Login() {
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!id.trim() || !pw) return toast.err('Enter your email or phone number and your password.');
+    setProblem(null);
+    if (!id.trim() || !pw) return setProblem({ message: 'Enter your email or phone number and your password.' });
     const rate = checkRate('login', 5, 60000);
-    if (!rate.ok) return toast.err(`Too many attempts. Wait ${rate.waitSeconds} seconds and try again.`);
+    if (!rate.ok) return setProblem({ message: `Too many attempts. Wait ${rate.waitSeconds} seconds and try again.` });
     setBusy(true);
     try {
       const u = await signIn(id, pw);
       toast.ok(`Welcome back${u.first_name ? `, ${u.first_name}` : ''}.`);
       navigate(next, { replace: true });
     } catch (err) {
-      toast.err(err.message);
+      setProblem({ message: err.message, unconfirmedEmail: err.unconfirmed && err.email.includes('@') && !err.email.endsWith('@sci-fidata.com') ? err.email : '' });
     } finally {
       setBusy(false);
+    }
+  };
+
+  const resend = async () => {
+    try {
+      await resendConfirmation(problem.unconfirmedEmail);
+      toast.ok('Confirmation email sent. Check your inbox and spam folder.');
+    } catch (err) {
+      toast.err(err.message);
     }
   };
 
@@ -68,6 +80,14 @@ export function Login() {
         <p className="authcard__lead">Use your email or the phone number you signed up with.</p>
         <TextField label="Email or phone number" autoComplete="username" placeholder="you@example.com or 0541234567" value={id} onChange={(e) => setId(e.target.value)} />
         <PasswordField label="Password" autoComplete="current-password" value={pw} onChange={(e) => setPw(e.target.value)} />
+        {problem && (
+          <Callout tone="bad" icon={LuCircleAlert}>
+            {problem.message}
+            {problem.unconfirmedEmail && (
+              <> <button type="button" className="linkbtn" onClick={resend}>Send the email again</button></>
+            )}
+          </Callout>
+        )}
         <Button type="submit" block size="lg" loading={busy}>Log in</Button>
         <p className="authcard__foot">New here? <Link to="/signup">Create an account</Link></p>
         <p className="authcard__foot">You don’t need an account to <Link to="/data">buy data</Link>.</p>
@@ -87,15 +107,57 @@ function strength(p) {
   return { pct: (s / 5) * 100, label: ['Too short', 'Weak', 'Fair', 'Good', 'Strong', 'Very strong'][s], tone: s <= 1 ? 'bad' : s <= 3 ? 'warn' : 'ok' };
 }
 
+/** Shown after an email sign-up when the project wants the address confirmed before the first login. */
+function CheckEmail({ email, resend }) {
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  const again = async () => {
+    setBusy(true);
+    try {
+      await resend(email);
+      toast.ok('Confirmation email sent again.');
+    } catch (err) {
+      toast.err(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="container authpage">
+      <div className="panel authcard">
+        <h1 className="authcard__title">Check your email</h1>
+        <p className="authcard__lead">We sent a confirmation link to <strong>{email}</strong>. Open it, then come back and log in. If you can’t find it, look in your spam folder.</p>
+        <Button to="/login" block><LuMailCheck aria-hidden="true" /> Go to log in</Button>
+        <Button variant="secondary" block onClick={again} loading={busy}>Send the email again</Button>
+      </div>
+    </div>
+  );
+}
+
+/** Phone accounts have no real inbox, so a project that insists on email confirmation cannot activate them by itself. */
+function ActivationNeeded({ phone }) {
+  return (
+    <div className="container authpage">
+      <div className="panel authcard">
+        <h1 className="authcard__title">One more step</h1>
+        <p className="authcard__lead">Your account for <strong>{phone}</strong> was created, but it has to be activated before you can log in. Message us and we will switch it on.</p>
+        <Button href={site.whatsappUrl(`Hi, please activate my account for ${phone}.`)} target="_blank" rel="noreferrer" block><LuMessageCircle aria-hidden="true" /> Message support on WhatsApp</Button>
+        <Button to="/login" variant="secondary" block>Go to log in</Button>
+      </div>
+    </div>
+  );
+}
+
 export function Signup() {
   usePageTitle('Create account');
-  const { signUp, user } = useAuth();
+  const { signUp, resendConfirmation, user } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const [method, setMethod] = useState('phone');
   const [f, setF] = useState({ first: '', last: '', phone: '', email: '', pw: '', pw2: '' });
   const [busy, setBusy] = useState(false);
-  const [confirm, setConfirm] = useState(false);
+  const [confirm, setConfirm] = useState(null); // { email, method } once the project asks for confirmation first
+  const [problem, setProblem] = useState(null);
   const [touched, setTouched] = useState(false);
   const set = (k) => (e) => setF((p) => ({ ...p, [k]: k === 'phone' ? cleanPhone(e.target.value) : e.target.value }));
 
@@ -117,33 +179,30 @@ export function Signup() {
   const submit = async (e) => {
     e.preventDefault();
     setTouched(true);
+    setProblem(null);
     if (Object.values(errors).some(Boolean)) return;
     const rate = checkRate('signup', 3, 300000);
-    if (!rate.ok) return toast.err(`Too many attempts. Wait ${rate.waitSeconds} seconds and try again.`);
+    if (!rate.ok) return setProblem(`Too many attempts. Wait ${rate.waitSeconds} seconds and try again.`);
     setBusy(true);
     try {
       const res = await signUp({ firstName: f.first.trim(), lastName: f.last.trim(), phone: f.phone, email: f.email, password: f.pw, method });
-      if (res.needsConfirmation) setConfirm(true);
+      if (res.needsConfirmation) setConfirm({ email: res.email, method: res.method });
       else {
         toast.ok('Your account is ready.');
         navigate('/account', { replace: true });
       }
     } catch (err) {
-      toast.err(err.message || 'We couldn’t create your account.');
+      setProblem(err.message || 'We couldn’t create your account.');
     } finally {
       setBusy(false);
     }
   };
 
   if (confirm) {
-    return (
-      <div className="container authpage">
-        <div className="panel authcard">
-          <h1 className="authcard__title">Check your email</h1>
-          <p className="authcard__lead">We sent a confirmation link to {f.email}. Open it, then come back to log in.</p>
-          <Button to="/login" block>Go to log in</Button>
-        </div>
-      </div>
+    return confirm.method === 'phone' ? (
+      <ActivationNeeded phone={f.phone} />
+    ) : (
+      <CheckEmail email={confirm.email} resend={resendConfirmation} />
     );
   }
 
@@ -171,6 +230,12 @@ export function Signup() {
         )}
         <PasswordField label="Confirm password" autoComplete="new-password" value={f.pw2} onChange={set('pw2')} error={show('pw2')} />
         <p className="authcard__fine">By creating an account you agree to our <Link to="/terms">terms</Link> and <Link to="/privacy">privacy policy</Link>.</p>
+        {problem && (
+          <Callout tone="bad" icon={LuCircleAlert}>
+            {problem}{' '}
+            {/already has an account/.test(problem) && <Link to="/login">Go to log in</Link>}
+          </Callout>
+        )}
         <Button type="submit" block size="lg" loading={busy}>Create account</Button>
         <p className="authcard__foot">Already registered? <Link to="/login">Log in</Link></p>
       </form>
