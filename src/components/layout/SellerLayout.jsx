@@ -6,6 +6,7 @@ import { StoreAvatar } from '../stores/StoreBits';
 import { useSeller } from '../../context/Seller';
 import { useToast } from '../../context/Toast';
 import { fetchStoreByOwner } from '../../services/stores';
+import { shopPath } from '../../lib/links';
 
 const StoreContext = createContext(null);
 /** The signed-in seller's store, for the pages inside the seller area. */
@@ -77,7 +78,7 @@ export default function SellerLayout({ children }) {
             </NavLink>
           ))}
           {store && (
-            <NavLink to={`/store/${store.slug}`} end className="account__link">
+            <NavLink to={shopPath(store.slug)} end className="account__link">
               <LuStore aria-hidden="true" />
               View my store
             </NavLink>

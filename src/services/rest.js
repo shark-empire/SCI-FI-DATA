@@ -25,12 +25,18 @@ async function readError(res) {
 }
 
 export function createClient({ url, anon }) {
-  const headers = (token, extra) => ({
-    apikey: anon,
-    Authorization: `Bearer ${token || anon}`,
-    'Content-Type': 'application/json',
-    ...extra,
-  });
+  // The classic "anon" key is a JWT and also goes in Authorization when nobody is signed in. The newer
+  // "publishable" key (sb_publishable_...) is not a JWT: Supabase wants it in `apikey` only.
+  const anonIsJwt = String(anon).startsWith('eyJ');
+  const headers = (token, extra) => {
+    const bearer = token || (anonIsJwt ? anon : '');
+    return {
+      apikey: anon,
+      ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}),
+      'Content-Type': 'application/json',
+      ...extra,
+    };
+  };
 
   async function request(method, path, { token, body, prefer, signal, extraHeaders, raw } = {}) {
     let res;

@@ -6,7 +6,7 @@ import { OrdersTable } from './Orders';
 import { useSeller } from '../../context/Seller';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { money } from '../../lib/format';
-import { storeUrl } from '../../lib/links';
+import { shopPath, storeUrl } from '../../lib/links';
 import { fetchOrdersByStore, fetchStoreStats } from '../../services/stores';
 
 const DONE = ['completed', 'delivered', 'success'];
@@ -66,7 +66,7 @@ export default function Overview() {
 
       <section className="panel">
         <div className="panel__head"><h2 className="panel__title">Your store link</h2></div>
-        <p className="summary__fine">Share this with customers. It opens your store and its checkout.</p>
+        <p className="summary__fine">Share this with customers. It opens only your store, its checkout and an order tracker. Customers never see the rest of the site.</p>
         <div className="receipt__ref"><code>{link}</code><CopyButton text={link} label="Copy link" /></div>
       </section>
 
@@ -78,7 +78,7 @@ export default function Overview() {
         {orders === null ? (
           <div className="skeleton-block" aria-busy="true" />
         ) : orders.length === 0 ? (
-          <Empty icon={LuShoppingBag} title="No orders yet" action={<Button to={`/store/${store.slug}`} size="sm">View my store</Button>}>
+          <Empty icon={LuShoppingBag} title="No orders yet" action={<Button to={shopPath(store.slug)} size="sm">View my store</Button>}>
             Orders appear here as soon as a customer pays.
           </Empty>
         ) : (

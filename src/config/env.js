@@ -34,10 +34,10 @@ export const config = {
 
   // Accounts, wallet and account orders (the Babor-Api React project).
   accountsBackend: {
-    url: val('VITE_ACCOUNTS_SUPABASE_URL', 'https://zhinkuoqxsmotnbsjdue.supabase.co'),
+    url: val('VITE_ACCOUNTS_SUPABASE_URL', 'https://ixezaagxxptcedteyrac.supabase.co'),
     anon: val(
       'VITE_ACCOUNTS_SUPABASE_ANON_KEY',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpoaW5rdW9xeHNtb3RuYnNqZHVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzOTc1MzIsImV4cCI6MjA4Nzk3MzUzMn0.Kw5BDJDH9WOAiE3a-P6ylQiseErYG-mHCFi5fgamnUY',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4ZXphYWd4eHB0Y2VkdGV5cmFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4NTI5NzIsImV4cCI6MjA5NzQyODk3Mn0.J8biZ_9TsupriNk8z1jXiSVzehEFOiTz8PHqGH4QUHs',
     ),
   },
 
@@ -55,6 +55,11 @@ export const config = {
     anon: val('VITE_STORES_SUPABASE_ANON_KEY', ''),
     // Customers pay the store through the same Paystack account as data bundles unless you give stores their own key.
     paystackKey: val('VITE_STORES_PAYSTACK_PUBLIC_KEY', DATA_PAYSTACK_KEY),
+    // Where store owners' share links point (for example https://shop.yourdomain.com). Empty: wherever this site is hosted.
+    linkBase: /^https?:\/\//i.test(val('VITE_STORE_LINK_BASE')) ? val('VITE_STORE_LINK_BASE').replace(/[#?].*$/, '').replace(/\/+$/, '') : '',
+    // Paystack needs an email for every payment. Customers see it in the payment window, so on a store domain
+    // set this to that domain (the part after the @).
+    payerDomain: val('VITE_STORES_PAYER_EMAIL_DOMAIN', 'sci-fidata.com'),
     enabled: false,
   },
 
@@ -86,3 +91,9 @@ export const config = {
 };
 
 config.stores.enabled = Boolean(config.stores.url && config.stores.anon);
+
+/**
+ * "stores" builds a storefront-only site: the pages of the main site are not compiled into it at all
+ * (see vite.config.js). Use it on a separate domain that you give to customers of store owners.
+ */
+export const storesOnly = val('VITE_SITE_MODE') === 'stores';

@@ -188,3 +188,63 @@ export async function fetchStoreStats(storeId, token) {
     return null;
   }
 }
+
+/* ---------- order tracking (public, by payment reference) ---------- */
+
+const maskPhone = (p) => {
+  const d = String(p ?? '').replace(/\D/g, '');
+  return d.length >= 7 ? `${d.slice(0, 3)}****${d.slice(-3)}` : '';
+};
+
+const toTracked = (r) => ({
+  status: r.status,
+  amount: Number(r.amount) || 0,
+  createdAt: r.created_at,
+  bundleName: r.bundle_name || '',
+  size: Number(r.size_gb) ? sizeLabel(Number(r.size_gb)) : r.bundle_name || '',
+  network: normalizeNetwork(r.network),
+  phone: r.phone || '',
+  storeName: r.store_name || '',
+  storeSlug: r.store_slug || '',
+  reference: r.reference || '',
+});
+
+/**
+ * Look an order up by its payment reference. Returns the order, or null when there is none.
+ * It calls the database function `track_store_order` (see the README for the SQL), which returns only
+ * what a customer needs to see and a masked phone number. Without the function it falls back to reading the
+ * orders table directly, which only works if your policies allow it.
+ */
+export async function trackOrder(reference) {
+  const ref = String(reference ?? '').trim();
+  if (!ref) return null;
+  try {
+    const row = await storesApi.rpc('track_store_order', { p_reference: ref });
+    const one = Array.isArray(row) ? row[0] : row;
+    return one && typeof one === 'object' ? toTracked({ ...one, reference: ref }) : null;
+  } catch (err) {
+    if (err.status !== 404 && err.code !== 'PGRST202') throw err;
+  }
+  const rows = await storesApi.select(
+    'orders',
+    `?paystack_reference=eq.${enc(ref)}&select=status,amount,created_at,customer_phone,bundle_id,store_id&limit=1`,
+  );
+  const o = rows?.[0];
+  if (!o) return null;
+  // The bundle's details are optional: a bundle the store has hidden since still tracks fine.
+  const b = o.bundle_id
+    ? (await storesApi.select('bundles', `?id=eq.${enc(o.bundle_id)}&select=name,size_gb,network,store:stores(name,slug)&limit=1`).catch(() => []))?.[0]
+    : null;
+  return toTracked({
+    status: o.status,
+    amount: o.amount,
+    created_at: o.created_at,
+    bundle_name: b?.name,
+    size_gb: b?.size_gb,
+    network: b?.network,
+    phone: maskPhone(o.customer_phone),
+    store_name: b?.store?.name,
+    store_slug: b?.store?.slug,
+    reference: ref,
+  });
+}

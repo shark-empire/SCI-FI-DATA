@@ -12,6 +12,7 @@ import LiveFX from './components/LiveFX';
 import Home from './pages/Home';
 import BuyData from './pages/BuyData';
 import NotFound from './pages/NotFound';
+import { matchShop } from './pages/stores/shopRoutes';
 
 // Everything except the landing and purchase pages loads on demand.
 const DataSuccess = lazy(() => import('./pages/DataSuccess'));
@@ -39,6 +40,8 @@ const StoreBuilder = lazy(() => import('./pages/stores/StoreBuilder'));
 const SellerLogin = lazy(() => import('./pages/stores/SellerLogin'));
 const SellerOverview = lazy(() => import('./pages/seller/Overview'));
 const SellerOrders = lazy(() => import('./pages/seller/Orders'));
+// What a store's customers see (the shop and order tracking), in a frame with no site menu.
+const Shop = lazy(() => import('./pages/stores/Shop'));
 const SellerBundles = lazy(() => import('./pages/seller/Bundles'));
 
 const PUBLIC_ROUTES = {
@@ -133,6 +136,17 @@ function matchParam(path) {
 
 function Routes() {
   const { path } = useLocation();
+
+  // A store's customers get the store alone: no site header, footer, menu or links.
+  const shop = matchShop(path);
+  if (shop) {
+    return (
+      <Suspense fallback={<Loading />}>
+        <Shop key={shop.slug} {...shop} />
+      </Suspense>
+    );
+  }
+
   const Account = ACCOUNT_ROUTES[path];
   const Seller = SELLER_ROUTES[path];
   const Page = PUBLIC_ROUTES[path];

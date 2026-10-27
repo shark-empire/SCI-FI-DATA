@@ -6,7 +6,8 @@ import { useOwnerLookup } from '../../hooks/useOwnerLookup';
 import { config } from '../../config/env';
 import { money } from '../../lib/format';
 import { storeRef } from '../../lib/ids';
-import { whatsappLink } from '../../lib/links';
+import { shopPath, whatsappLink } from '../../lib/links';
+import { shopOrders } from '../../lib/storage';
 import { digitsOnly, validatePhone, cleanPhone } from '../../lib/phone';
 import { loadPaystack, openPaystack } from '../../services/paystack';
 import { createOrder, toDbNetwork } from '../../services/stores';
@@ -44,6 +45,8 @@ export default function StoreCheckout({ bundle }) {
     } catch {
       saved = false;
     }
+    // Remember it on this device so the customer can find it again on the store's tracking page.
+    shopOrders.add(store?.slug, { ref: reference, size: bundle.size, network: bundle.network, at: Date.now() });
     setReceipt({ reference, phone: recipient, saved, busy: false });
     setPaying(false);
   };
@@ -62,7 +65,7 @@ export default function StoreCheckout({ bundle }) {
       // The metadata is what the payment automation reads, so keep its shape.
       await openPaystack({
         key: config.stores.paystackKey,
-        email: `${recipient}@sci-fidata.com`,
+        email: `${recipient}@${config.stores.payerDomain}`,
         amount: bundle.price,
         reference,
         metadata: {
@@ -113,6 +116,7 @@ export default function StoreCheckout({ bundle }) {
             {!receipt.saved && <Callout tone="warn" icon={LuCircleAlert}>Keep this reference. It is your proof of payment.</Callout>}
             <p className="summary__fine">If the bundle has not arrived in 30 minutes, message the store with your reference.</p>
             <div className="status__actions status__actions--left">
+              {store?.slug && <Button to={`${shopPath(store.slug)}/track?ref=${encodeURIComponent(receipt.reference)}`}>Track this order</Button>}
               {chat && <Button href={chat} target="_blank" rel="noreferrer" variant="secondary"><LuMessageCircle aria-hidden="true" /> Message the store</Button>}
               <Button variant="ghost" onClick={() => { setReceipt(null); setPhone(''); setTouched(false); }}>Buy another</Button>
             </div>

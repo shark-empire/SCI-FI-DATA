@@ -10,7 +10,7 @@ import { useTintColor } from '../../hooks/useTintColor';
 import { Link } from '../../router';
 import { ACCENTS, DEFAULT_ACCENT } from '../../lib/color';
 import { digitsOnly } from '../../lib/phone';
-import { storeUrl } from '../../lib/links';
+import { shopPath, storeUrl } from '../../lib/links';
 import { toSlug } from '../../lib/slug';
 import { createStore, fetchStoreByOwner, isSlugTaken, uploadStoreLogo } from '../../services/stores';
 
@@ -115,7 +115,7 @@ function StoreBuilder() {
           <h1 className="authcard__title">You already have a store</h1>
           <p className="authcard__lead">{existing.name} is live. Each seller account has one store.</p>
           <Button to="/seller" block>Go to my dashboard</Button>
-          <Button to={`/store/${existing.slug}`} variant="secondary" block>View my store</Button>
+          <Button to={shopPath(existing.slug)} variant="secondary" block>View my store</Button>
         </div>
       </div>
     );
@@ -155,7 +155,7 @@ function StoreBuilder() {
         {step === 1 && (
           <div className="stack">
             <h2 className="wizard__title">About your store</h2>
-            <TextField label="Store name" placeholder="Kwame’s Data Hub" maxLength={40} value={info.name} onChange={(e) => setInfo({ ...info, name: e.target.value })} error={nameError} hint={slug ? `Your link ends with /store/${slug}` : undefined} />
+            <TextField label="Store name" placeholder="Kwame’s Data Hub" maxLength={40} value={info.name} onChange={(e) => setInfo({ ...info, name: e.target.value })} error={nameError} hint={slug ? `Your link ends with /s/${slug}` : undefined} />
             <TextField label="Description (optional)" as="textarea" rows={3} maxLength={160} placeholder="What makes your store special?" value={info.description} onChange={(e) => setInfo({ ...info, description: e.target.value })} />
             <TextField label="WhatsApp number (optional)" type="tel" inputMode="numeric" prefix="+" placeholder="233541234567" value={info.whatsapp} onChange={(e) => setInfo({ ...info, whatsapp: digitsOnly(e.target.value).slice(0, 15) })} hint="With the country code. Customers use it to message you about an order." />
             <div className="field">
@@ -203,12 +203,12 @@ function StoreBuilder() {
           <div className="stack launched">
             <StoreAvatar store={created} size="xl" />
             <h2 className="wizard__title">{created.name} is live</h2>
-            <p className="authcard__lead">Add your first bundles, then share your link with customers.</p>
+            <p className="authcard__lead">Add your first bundles, then share your link with customers. They see only your store and their order tracker, nothing else.</p>
             <div className="receipt__ref"><code>{storeUrl(created.slug)}</code><CopyButton text={storeUrl(created.slug)} label="Copy link" /></div>
             <Callout tone="info" icon={LuCircleAlert}>Your store shows no bundles until you add some. That takes a minute.</Callout>
             <div className="status__actions status__actions--left">
               <Button to="/seller/bundles">Add bundles</Button>
-              <Button to={`/store/${created.slug}`} variant="secondary">View my store</Button>
+              <Button to={shopPath(created.slug)} variant="secondary">View my store</Button>
             </div>
           </div>
         )}

@@ -47,3 +47,19 @@ export const recentRefs = {
     local.setJson(RECENT_KEY, next);
   },
 };
+
+// Orders placed from a store on this device, so a customer can find them again on that store's tracking page.
+const SHOP_KEY = 'sf_shop_orders';
+export const shopOrders = {
+  list(slug) {
+    const all = local.getJson(SHOP_KEY, {});
+    return Array.isArray(all?.[slug]) ? all[slug] : [];
+  },
+  add(slug, order) {
+    if (!slug || !order?.ref) return;
+    const all = local.getJson(SHOP_KEY, {}) || {};
+    const rest = (Array.isArray(all[slug]) ? all[slug] : []).filter((o) => o.ref !== order.ref);
+    all[slug] = [order, ...rest].slice(0, 8);
+    local.setJson(SHOP_KEY, all);
+  },
+};

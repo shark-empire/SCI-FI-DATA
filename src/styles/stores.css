@@ -550,3 +550,83 @@
     flex: 1 1 100%;
   }
 }
+
+/* ---------- Customer view of a store (no site menu) ---------- */
+.shopbrand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.shopbrand__name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.08rem;
+  letter-spacing: 0.005em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 24ch;
+}
+.shopnav {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+.shopnav + .header__actions {
+  margin-left: 0;
+}
+.shopfoot {
+  padding-block: 28px 36px;
+  color: var(--ink-3, var(--ink-2));
+  font-size: 0.9rem;
+}
+.shopfoot__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.shopfoot__chat {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-2);
+  font-weight: 600;
+  text-decoration: none;
+}
+.shopfoot__chat:hover {
+  color: var(--ink);
+}
+.shopnotice {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 24px;
+  color: var(--ink-2);
+  text-align: center;
+}
+.order__note {
+  margin: 4px 0 14px;
+  color: var(--ink-2);
+}
+@media (max-width: 560px) {
+  /* On a phone the store's name matters more than its icon and the theme button. */
+  .shopbrand .avatar,
+  .shop .header__actions {
+    display: none;
+  }
+  .shopbrand__name {
+    max-width: 18ch;
+    font-size: 1rem;
+  }
+  .shopnav .header__link {
+    padding: 8px 10px;
+    font-size: 0.86rem;
+  }
+  .shopfoot__row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

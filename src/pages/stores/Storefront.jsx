@@ -4,23 +4,27 @@ import { Button, Callout, CopyButton, Empty, NetworkChip, Segmented } from '../.
 import StoreCheckout from '../../components/stores/StoreCheckout';
 import { StoreAvatar, withStores } from '../../components/stores/StoreBits';
 import { useAsync } from '../../hooks/useAsync';
-import { usePageTitle } from '../../hooks/usePageTitle';
+import { useDocTitle } from '../../hooks/useDocTitle';
 import { useTintColor } from '../../hooks/useTintColor';
 import { NETWORKS } from '../../config/site';
 import { money, splitSize } from '../../lib/format';
-import { storeUrl, whatsappLink } from '../../lib/links';
+import { shopPath, storeUrl, whatsappLink } from '../../lib/links';
 import { fetchBundlesByStore, fetchStoreBySlug } from '../../services/stores';
 
-/** A store's own page: its bundles and a checkout. `param` is the slug from the address. */
-function Storefront({ param: slug }) {
+/**
+ * A store's own page: its bundles and a checkout. `param` is the slug from the address.
+ * In the customer view (`shell`) the store is passed in already loaded and the page has no way back to the rest of the site.
+ */
+export function Storefront({ param, store: preloaded, shell = false }) {
+  const slug = preloaded?.slug || param;
   const { data, status, reload } = useAsync(async () => {
-    const store = await fetchStoreBySlug(slug);
+    const store = preloaded || (await fetchStoreBySlug(slug));
     if (!store) return { store: null, bundles: [] };
     const bundles = await fetchBundlesByStore(store.id);
     return { store, bundles: bundles.map((b) => ({ ...b, store })) };
   }, [slug]);
   const store = data?.store;
-  usePageTitle(store ? store.name : 'Store');
+  useDocTitle(store ? store.name : 'Store');
   useTintColor(store?.accent);
 
   const [network, setNetwork] = useState('All');
@@ -62,7 +66,7 @@ function Storefront({ param: slug }) {
   if (!store) {
     return (
       <div className="container page page--narrow">
-        <Empty icon={LuStore} title="Store not found" action={<Button to="/stores" size="sm">Browse stores</Button>}>
+        <Empty icon={LuStore} title="Store not found" action={shell ? undefined : <Button to="/stores" size="sm">Browse stores</Button>}>
           The link may be old, or the store may have closed.
         </Empty>
       </div>
@@ -131,4 +135,4 @@ function Storefront({ param: slug }) {
   );
 }
 
-export default withStores(Storefront);
+export default /* @__PURE__ */ withStores(Storefront);

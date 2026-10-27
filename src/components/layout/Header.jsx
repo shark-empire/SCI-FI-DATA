@@ -1,21 +1,11 @@
 import { useEffect, useState } from 'react';
-import { LuMenu, LuMoon, LuSun, LuX } from 'react-icons/lu';
+import { LuMenu, LuX } from 'react-icons/lu';
 import { Link, NavLink, useLocation } from '../../router';
 import { useAuth } from '../../context/Auth';
-import { useTheme } from '../../context/Theme';
+import { ThemeToggle } from '../ThemeToggle';
 import Logo from '../Logo';
 import { Button } from '../ui';
 import { MAIN_NAV } from './nav';
-
-export function ThemeToggle() {
-  const { theme, toggle } = useTheme();
-  const Icon = theme === 'dark' ? LuSun : LuMoon;
-  return (
-    <button type="button" className="iconbtn" onClick={toggle} aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}>
-      <Icon aria-hidden="true" />
-    </button>
-  );
-}
 
 export default function Header() {
   const { user } = useAuth();

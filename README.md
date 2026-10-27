@@ -45,6 +45,9 @@ Everything is optional. The defaults in `src/config/env.js` are the values found
 | `VITE_ACCOUNTS_SUPABASE_URL`, `VITE_ACCOUNTS_SUPABASE_ANON_KEY` | Sign-in, `users`, `orders`, `wallet_transactions` | Babor-Api project |
 | `VITE_STORES_SUPABASE_URL`, `VITE_STORES_SUPABASE_ANON_KEY` | Reseller stores: `stores`, `bundles`, `orders`, sellers' sign-in | URL from the Store project; **no key**, so stores stay off until you set it |
 | `VITE_STORES_PAYSTACK_PUBLIC_KEY` | Customers paying a store | same as `VITE_PAYSTACK_PUBLIC_KEY` |
+| `VITE_STORE_LINK_BASE` | Where store owners' share links point, for example `https://shop.yourdomain.com` | empty, so wherever this site is hosted |
+| `VITE_STORES_PAYER_EMAIL_DOMAIN` | The part after the `@` of the email Paystack shows to a store's customers | `sci-fidata.com`, so set it to your store domain |
+| `VITE_SITE_MODE` | `stores` builds a stores-only site: no main-site pages at all (see "What a store's customers see") | empty, the full site |
 | `VITE_OWNER_LOOKUP_URL` | Recipient name lookup | original Activepieces flow |
 | `VITE_ORDER_LOOKUP_URL` | Track order by reference | original Activepieces flow |
 | `VITE_WALLET_PURCHASE_URL` | Pay for a bundle from the wallet | placeholder, so wallet payment is hidden |
@@ -65,7 +68,9 @@ Anyone can open a store, set their own prices and share one link; customers pay 
 | --- | --- |
 | `#/marketplace` | Every live bundle from every open store, with network filter, search and sort |
 | `#/stores` | Directory of open stores |
-| `#/store/<slug>` | A store's own page. It takes the store's accent colour and has the checkout. This is the link a seller shares |
+| `#/s/<slug>` | **The link a seller shares.** The store's shop and checkout in a frame with no site menu (see below) |
+| `#/s/<slug>/track` | The store's order tracker for its customers |
+| `#/store/<slug>` | The same store inside the full site (menu, footer), as marketplace visitors see it |
 | `#/bundle/<id>` | One bundle, with checkout |
 | `#/store-builder` | Four steps: seller account, store details (name, description, WhatsApp, logo), colour, launch |
 | `#/seller`, `/seller/orders`, `/seller/bundles` | Seller dashboard: sales, orders, add bundles, hide or show a bundle |
@@ -80,10 +85,59 @@ Sellers sign in to the Store project, which is a different Supabase project from
 - **Row-level security.** Visitors must be able to read live stores and bundles and insert an order; owners must be able to read their own orders and insert or update their own store and bundles; nobody should be able to edit another store.
 - **A customer's browser creates the order row, so it is not proof of payment.** The row is saved as `pending` with the Paystack reference. Whatever delivers the data must verify the reference with Paystack, check that the amount paid matches `bundles.price` for that `bundle_id`, and only then deliver and mark the order `completed`. The Paystack metadata (`type: 'bundle_purchase'`, `phone`, `network`, `bundle_id`, `store_id`, `bundle_size`) is sent so a webhook can do this on its own, without relying on the browser.
 
+### What a store's customers see
+
+A store owner's link (`#/s/<slug>`) opens a customer view with nothing else in it: the store's name and logo, **Shop** and **Track order**, the checkout and a WhatsApp link to the store. There is no site menu, no footer, no log-in, no marketplace and no link to the main site. The browser tab shows only the store's name and a tab icon made from its logo (or its first letter), and the page is tinted with the store's colour. After paying, the customer gets a receipt with their reference and a **Track this order** button; the device also remembers their orders so the tracker lists them.
+
+**Order tracking needs one function in the Store project's database.** Run this once in the Supabase SQL editor. It returns only what a customer should see (status, bundle, amount, a masked phone number) for one exact payment reference, so the `orders` table itself stays private:
+
+```sql
+create or replace function public.track_store_order(p_reference text)
+returns json
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select json_build_object(
+    'status',     o.status,
+    'amount',     o.amount,
+    'created_at', o.created_at,
+    'bundle_name', b.name,
+    'size_gb',    b.size_gb,
+    'network',    b.network,
+    'phone',      left(o.customer_phone::text, 3) || '****' || right(o.customer_phone::text, 3),
+    'store_name', s.name,
+    'store_slug', s.slug
+  )
+  from orders o
+  left join bundles b on b.id = o.bundle_id
+  left join stores  s on s.id = o.store_id
+  where o.paystack_reference = p_reference
+  limit 1;
+$$;
+
+grant execute on function public.track_store_order(text) to anon, authenticated;
+```
+
+Without it the tracker tries to read the `orders` table directly, which only works if your policies let visitors read orders. Do not open the table to everyone just for this; use the function. A customer can only look up an order whose reference they were given (it contains a timestamp and random letters), and another store's references are shown as "not found" on this store's page.
+
+**Hiding the main site completely (the stores-only site).** On one website the main pages still exist at the site's own address, so someone who deletes `#/s/<slug>` from the link and opens the bare address would find them. To remove them entirely, publish a second copy of this project for customers with the variable `VITE_SITE_MODE=stores`. That build:
+
+- contains only the store pages (the shop and the tracker). The home page, data bundles, results checkers, log-in, wallet, marketplace, seller area and admin pages are not compiled in, so every other address shows a blank "Open the link your store gave you" notice;
+- has no accounts or wallet code, no logo or icon files, and a page shell with no brand name, description or icon;
+- still opens the older `#/store/<slug>` links.
+
+Set it up like this: create a second GitHub repository (for example `shop`) with the same files, add the repository variables `VITE_SITE_MODE` = `stores`, `VITE_STORES_SUPABASE_ANON_KEY`, and `VITE_STORES_PAYER_EMAIL_DOMAIN` (your store domain), turn on Pages, and point the store domain at it. On the **main** site set `VITE_STORE_LINK_BASE` = `https://your-store-domain` so every link owners copy uses the store domain. Owners still sign in, build and manage stores on the main site.
+
+When you buy a domain, a good split is `yourdomain.com` for the main site and a separate, neutral-looking name or subdomain for stores (for example `shop.yourdomain.com`, or a different domain if you do not want any link between them). On GitHub Pages: **Settings > Pages > Custom domain**, then add the DNS records GitHub shows you at your registrar and tick **Enforce HTTPS** once it is ready. A GitHub Pages site can have one custom domain, which is why the stores-only site is a second repository.
+
+**What customers can still find out.** The checkout window belongs to Paystack, and it shows the name of your Paystack business and the email address given to it (set `VITE_STORES_PAYER_EMAIL_DOMAIN` so that is your store domain, not the main site's). If your Paystack business name is the main site's name, customers will see it there; change it in your Paystack dashboard if you do not want that. Someone who opens the browser's developer tools on the stores-only site can read its code, which still contains the default settings (the main site's contact details and backend addresses), but no pages or links to it.
+
 **What was left out or changed from the Store project**
 
 - Left out: wallet top-up and pay-from-wallet (the site already has one wallet, and the Store's `deduct_wallet_balance` function took a user id from the browser), the phone-OTP login (it never created a session), the fabricated testimonials, and the "pretend the payment worked" fallback when Paystack could not load. Also dropped: Tailwind, framer-motion, three, lucide, the Supabase SDK and the debug console (eruda). The pages that used them were rebuilt in the site's own style.
-- Fixed: the bundle validity typo (`validit`) that made every bundle `90DAYS`; the dashboard calling a function that did not exist; sellers' totals being worked out from only the last 50 orders; store links that would not have worked on a static host (they are now `#/store/<slug>` and are built from wherever the site is hosted).
+- Fixed: the bundle validity typo (`validit`) that made every bundle `90DAYS`; the dashboard calling a function that did not exist; sellers' totals being worked out from only the last 50 orders; store links that would not have worked on a static host (they are now `#/s/<slug>` and are built from wherever the site is hosted, or from `VITE_STORE_LINK_BASE`).
 - A store's accent colour is checked (`#rrggbb` only) before it reaches the page, and uploaded logos must be a PNG, JPG, WebP or GIF under 2 MB.
 
 ## Things you need to finish before taking real money
@@ -100,7 +154,8 @@ Sellers sign in to the Store project, which is a different Supabase project from
    - Supabase's built-in email sender allows only a few emails an hour. When that limit is hit, sign-up says so. For real traffic, add your own SMTP provider under *Authentication → SMTP Settings*.
    - The `users` table needs an insert policy that lets a signed-in user create the row whose `id` is their own, and (if `phone` is unique) must allow several rows with no phone. The site tries a few shapes and still signs the customer in if the row is refused; the row is rebuilt on their next login.
 8. **Store orders need a verifying backend** (see Stores above). Without it, a paid store order stays `pending` forever.
-9. **Brand.** `public/logo.svg` and `public/favicon.svg` are placeholder marks. Replace them with your own.
+9. **Run the order-tracking SQL** from "What a store's customers see" in your Store project, or the tracker cannot find orders.
+10. **Brand.** `public/logo.svg` and `public/favicon.svg` are placeholder marks. Replace them with your own.
 
 ## What changed from the originals
 
@@ -129,6 +184,7 @@ src/
   lib/          format, phone validation, ids/references, storage, rate limit, live (pointer and click effects)
   services/     rest.js (Supabase), webhooks.js, paystack.js, stores.js (reseller stores)
   context/      Theme, Toast, Auth, Seller (store owners' own sign-in)
+  StoresApp.jsx the stores-only app used when VITE_SITE_MODE=stores
   hooks/        useBundles, usePageTitle, useTint (sets the colour of the glass)
   components/   ui.jsx, Logo, RateCard, LiveFX (backdrop + click layer), layout/ (Header, Footer, TabBar, layouts)
   pages/        public pages, account/ (signed in), admin/, stores/ (marketplace, store pages, builder), seller/ (dashboard)
