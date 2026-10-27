@@ -51,6 +51,9 @@ jobs:
           VITE_WALLET_FEE_PERCENT: ${{ vars.VITE_WALLET_FEE_PERCENT }}
           VITE_WHATSAPP_NUMBER: ${{ vars.VITE_WHATSAPP_NUMBER }}
           VITE_SUPPORT_EMAIL: ${{ vars.VITE_SUPPORT_EMAIL }}
+          VITE_STORE_LINK_BASE: ${{ vars.VITE_STORE_LINK_BASE }}
+          VITE_STORES_PAYER_EMAIL_DOMAIN: ${{ vars.VITE_STORES_PAYER_EMAIL_DOMAIN }}
+          VITE_SITE_MODE: ${{ vars.VITE_SITE_MODE }}
 
       - uses: actions/upload-pages-artifact@v3
         with:
