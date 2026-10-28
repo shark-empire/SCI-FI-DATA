@@ -13,7 +13,7 @@ function normalize(row) {
     size: String(row.size ?? '').trim(),
     price: Number(row.price),
     network: normalizeNetwork(row.network),
-    available: row.available !== false,
+    available: row.is_active !== false && row.available !== false,
   };
 }
 
