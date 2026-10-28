@@ -13,6 +13,8 @@ function normalize(row) {
     size: String(row.size ?? '').trim(),
     price: Number(row.price),
     network: normalizeNetwork(row.network),
+    // The catalogue's switch is `is_active` (older copies of the table used `available`). Either one set to false
+    // marks the bundle sold out; a row with neither column counts as in stock.
     available: row.is_active !== false && row.available !== false,
   };
 }

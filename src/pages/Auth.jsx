@@ -7,7 +7,8 @@ import { usePageTitle } from '../hooks/usePageTitle';
 import { Link, useLocation, useNavigate } from '../router';
 import { site } from '../config/site';
 import { checkRate } from '../lib/rateLimit';
-import { validatePhone, cleanPhone } from '../lib/phone';
+import { validatePhone, cleanPhone, prettyPhone } from '../lib/phone';
+import { phoneCodesEnabled } from '../services/phoneCodes';
 
 function PasswordField({ label, value, onChange, ...rest }) {
   const [show, setShow] = useState(false);
@@ -148,6 +149,74 @@ function ActivationNeeded({ phone }) {
   );
 }
 
+/** Second step of a phone sign-up: the 6-digit code that was texted to the number. */
+function VerifyPhone({ phone, onBack }) {
+  const { verifyPhone, resendCode } = useAuth();
+  const toast = useToast();
+  const navigate = useNavigate();
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState('');
+  const [wait, setWait] = useState(60); // Supabase lets a number ask for a new code once a minute
+
+  useEffect(() => {
+    if (wait <= 0) return undefined;
+    const t = setTimeout(() => setWait((w) => w - 1), 1000);
+    return () => clearTimeout(t);
+  }, [wait]);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setProblem('');
+    if (code.length !== 6) return setProblem('Enter the 6-digit code from the text message.');
+    setBusy(true);
+    try {
+      const u = await verifyPhone({ phone, code });
+      toast.ok(`Your number is verified${u.first_name ? `. Welcome, ${u.first_name}` : ''}.`);
+      navigate('/account', { replace: true });
+    } catch (err) {
+      setProblem(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const again = async () => {
+    setProblem('');
+    try {
+      await resendCode(phone);
+      setWait(60);
+      toast.ok('We sent a new code.');
+    } catch (err) {
+      setProblem(err.message);
+    }
+  };
+
+  return (
+    <div className="container authpage">
+      <form className="panel authcard" onSubmit={submit} noValidate>
+        <h1 className="authcard__title">Enter the code</h1>
+        <p className="authcard__lead">We sent a 6-digit code by text message to <strong>{prettyPhone(phone)}</strong>. It can take a minute to arrive.</p>
+        <TextField
+          className="otp"
+          label="6-digit code"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          placeholder="000000"
+          value={code}
+          onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+        />
+        {problem && (
+          <Callout tone="bad" icon={LuCircleAlert}>{problem}</Callout>
+        )}
+        <Button type="submit" block size="lg" loading={busy}>Verify and continue</Button>
+        <Button variant="secondary" block onClick={again} disabled={wait > 0}>{wait > 0 ? `Send a new code in ${wait}s` : 'Send a new code'}</Button>
+        <p className="authcard__foot">Wrong number? <button type="button" className="linkbtn" onClick={onBack}>Change it</button></p>
+      </form>
+    </div>
+  );
+}
+
 export function Signup() {
   usePageTitle('Create account');
   const { signUp, resendConfirmation, user } = useAuth();
@@ -157,6 +226,8 @@ export function Signup() {
   const [f, setF] = useState({ first: '', last: '', phone: '', email: '', pw: '', pw2: '' });
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState(null); // { email, method } once the project asks for confirmation first
+  const [codeFor, setCodeFor] = useState(''); // the phone number a code was texted to, while its code is awaited
+  const [codes, setCodes] = useState(false); // does this project text a code to confirm phone numbers?
   const [problem, setProblem] = useState(null);
   const [touched, setTouched] = useState(false);
   const set = (k) => (e) => setF((p) => ({ ...p, [k]: k === 'phone' ? cleanPhone(e.target.value) : e.target.value }));
@@ -164,6 +235,14 @@ export function Signup() {
   useEffect(() => {
     if (user) navigate('/account', { replace: true });
   }, [user, navigate]);
+
+  useEffect(() => {
+    let off = false;
+    phoneCodesEnabled().then((on) => !off && setCodes(on));
+    return () => {
+      off = true;
+    };
+  }, []);
 
   const phoneCheck = validatePhone(f.phone, { strict: true });
   const pwStrength = strength(f.pw);
@@ -186,7 +265,8 @@ export function Signup() {
     setBusy(true);
     try {
       const res = await signUp({ firstName: f.first.trim(), lastName: f.last.trim(), phone: f.phone, email: f.email, password: f.pw, method });
-      if (res.needsConfirmation) setConfirm({ email: res.email, method: res.method });
+      if (res.needsCode) setCodeFor(res.phone);
+      else if (res.needsConfirmation) setConfirm({ email: res.email, method: res.method });
       else {
         toast.ok('Your account is ready.');
         navigate('/account', { replace: true });
@@ -197,6 +277,8 @@ export function Signup() {
       setBusy(false);
     }
   };
+
+  if (codeFor) return <VerifyPhone phone={codeFor} onBack={() => setCodeFor('')} />;
 
   if (confirm) {
     return confirm.method === 'phone' ? (
@@ -217,7 +299,7 @@ export function Signup() {
           <TextField label="Last name" autoComplete="family-name" value={f.last} onChange={set('last')} error={show('last')} />
         </div>
         {method === 'phone' ? (
-          <TextField label="Ghana phone number" type="tel" inputMode="numeric" maxLength={16} prefix="+233" autoComplete="tel-national" placeholder="0541234567" value={f.phone} onChange={set('phone')} error={show('contact')} hint="You will use this number to log in." />
+          <TextField label="Ghana phone number" type="tel" inputMode="numeric" maxLength={16} prefix="+233" autoComplete="tel-national" placeholder="0541234567" value={f.phone} onChange={set('phone')} error={show('contact')} hint={codes ? 'We will text a 6-digit code to confirm it. You will use this number to log in.' : 'You will use this number to log in.'} />
         ) : (
           <TextField label="Email address" type="email" autoComplete="email" placeholder="you@example.com" value={f.email} onChange={set('email')} error={show('contact')} />
         )}

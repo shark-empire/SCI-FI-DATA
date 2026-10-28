@@ -170,6 +170,24 @@ New sites usually take days to weeks to appear. Whether Google shows a panel abo
 
 **One limit to know.** The site uses `#` addresses (`#/data`, `#/about`), and search engines treat everything after the `#` as the same page. So the home page is what gets indexed; individual pages like Data bundles will not appear as separate results. Fixing that would mean switching to plain addresses (`/data`) and a host that serves them, which is a bigger change.
 
+## Phone verification (SMS codes through mNotify)
+
+Out of the box, a phone sign-up is **not verified**: anyone can register any number. To make Supabase text a 6-digit code that the customer must type before the account works, switch on Supabase's phone sign-in and let this project's function send the texts through mNotify. **The site detects this by itself**: once Supabase says phone confirmations are on, the sign-up page starts asking for the code. Until then it keeps the older sign-up, so nothing breaks while you set it up. Accounts made the older way keep working: log in tries both kinds.
+
+Do the steps in this order, in the Supabase project that holds your customers' accounts:
+
+1. **Get your mNotify details.** In your mNotify account: the **API key** (API section), and a **sender name** that is approved on your account (11 characters at most). Make sure the account has SMS credit; every code is one text.
+2. **Create the function.** *Edge Functions → Deploy a new function → Via Editor*. Name it exactly `send-sms`, paste in the contents of `supabase/functions/send-sms/index.ts` from this repository, and deploy. Then open the function's settings and **switch "Verify JWT" off** (Supabase proves who it is with a signature, not a login token).
+3. **Add the hook.** *Authentication → Hooks → Send SMS* → turn it on, choose **Edge Function**, pick `send-sms`, and click **Generate secret**. Copy the secret (it starts with `v1,whsec_`) and save the hook.
+4. **Add the three secrets.** *Edge Functions → Secrets* (or *Manage secrets*): `MNOTIFY_API_KEY`, `MNOTIFY_SENDER` and `SEND_SMS_HOOK_SECRET` (the secret from step 3).
+5. **Turn on the phone provider last.** *Authentication → Sign In / Providers → Phone*: enable it and switch on **Enable phone confirmations**. (With the hook on, the SMS provider choice on that page is not used.) Set the message to `Your SCI-FI DATA code is {{ .Code }}`, expiry about 600 seconds, and save.
+6. **Limit abuse.** *Authentication → Rate Limits*: set the number of SMS messages per hour to something low. Each text costs you money and bots like to trigger them.
+7. **Test with your own number.** Open the site, create an account with your own number, and the text should arrive within a minute. If it does not, open *Edge Functions → send-sms → Logs*: the line starting `send-sms:` says why (for example the sender name is not approved, the key is wrong, or there is no credit). Supabase's "test phone numbers" never call the function, so they cannot test mNotify.
+
+How it behaves: sign-up asks for the number, texts a code, and the account is created and signed in once the code is right. A new code can be requested after a minute. If someone signs up but never types the code, logging in tells them the number is not verified and to sign up again with the same details to get a new code. A customer's login is still their phone number and password.
+
+To turn it off, switch off *Enable phone confirmations*; the site goes back to the older sign-up on its own.
+
 ## Things you need to finish before taking real money
 
 1. **Results checkers need a backend.** The original Babor project called `https://your-backend-url.com/api/verify-payment`, which never existed. Point `VITE_RESULTS_VERIFY_URL` at a service that verifies the Paystack reference **server-side** and returns `{ "pins": [{ "pin": "...", "serial": "..." }] }`. The page sends `{ reference, product_id, quantity }`. Until then the page shows a clear error and keeps the payment reference so the customer can contact you. Also set `VITE_RESULTS_PAYSTACK_KEY` to a live key when you go live: the default is a test key.
@@ -179,7 +197,7 @@ New sites usually take days to weeks to appear. Whether Google shows a panel abo
 5. **Use one Supabase project.** The data catalogue and the account/wallet system point at two different Supabase projects. Wallet purchases send the catalogue's `bundle_id`, so the wallet flow has to understand those ids. Moving everything to one project (set both URL/key pairs to the same values) avoids this.
 6. **Row-level security.** The anon keys are public by design, so your tables must have RLS policies that only let users read their own `orders`, `wallet_transactions` and `users` rows, and never let the browser change a balance. The original client credited wallets directly from the browser; that was removed, and the wallet balance is now only read, and refreshed after payment.
 7. **Sign-up and login need the right Supabase auth settings.** In each Supabase project open *Authentication → Providers → Email*:
-   - **Confirm email must be OFF** for phone-number accounts. They sign in with a made-up address (`0541234567@sci-fidata.com`) that has no inbox, so a confirmation email can never be opened. With it ON, phone sign-ups are created but cannot log in (the site then tells the customer to message support).
+   - **Confirm email must be OFF** for phone-number accounts *unless you set up SMS codes (see "Phone verification" below)*. Without SMS codes, a phone account signs in with a made-up address (`0541234567@sci-fidata.com`) that has no inbox, so a confirmation email can never be opened. With it ON, phone sign-ups are created but cannot log in (the site then tells the customer to message support). Phone accounts that use SMS codes do not depend on this setting.
    - With **Confirm email ON**, email sign-ups still work: the site shows "Check your email" and offers to resend. Until the link is opened, login says "Your email isn't confirmed yet".
    - Supabase's built-in email sender allows only a few emails an hour. When that limit is hit, sign-up says so. For real traffic, add your own SMTP provider under *Authentication → SMTP Settings*.
    - The `users` table needs an insert policy that lets a signed-in user create the row whose `id` is their own, and (if `phone` is unique) must allow several rows with no phone. The site tries a few shapes and still signs the customer in if the row is refused; the row is rebuilt on their next login.
@@ -209,10 +227,12 @@ The look takes its ideas from the structure and public design language of shopif
 ## Project layout
 
 ```
+supabase/
+  functions/send-sms/   the Supabase "Send SMS" hook that texts sign-up codes through mNotify
 src/
   config/       env.js (runtime config), site.js (brand, networks, FAQ, results products)
   lib/          format, phone validation, ids/references, storage, rate limit, live (pointer and click effects)
-  services/     rest.js (Supabase), webhooks.js, paystack.js, stores.js (reseller stores)
+  services/     rest.js (Supabase), phoneCodes.js (are SMS codes on?), webhooks.js, paystack.js, stores.js (reseller stores)
   context/      Theme, Toast, Auth, Seller (store owners' own sign-in)
   StoresApp.jsx the stores-only app used when VITE_SITE_MODE=stores
   hooks/        useBundles, usePageTitle, useTint (sets the colour of the glass)

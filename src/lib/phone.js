@@ -28,5 +28,11 @@ export function validatePhone(value, { strict = false } = {}) {
   return { ok: true, msg: '' };
 }
 
-/** Accounts created with a phone number get a synthetic sign-in email. */
+/** Accounts created before phone codes existed have a synthetic sign-in email instead of a real phone identity. */
 export const phoneToEmail = (phone) => `${digitsOnly(phone)}@sci-fidata.com`;
+
+/** "0541234567" (or "+233 54 123 4567") becomes "+233541234567", the form Supabase and SMS providers expect. */
+export const toE164 = (phone) => `+233${cleanPhone(phone).slice(1)}`;
+
+/** "0541234567" shown as "054 123 4567". */
+export const prettyPhone = (phone) => cleanPhone(phone).replace(/^(\d{3})(\d{3})(\d{4})$/, '$1 $2 $3');

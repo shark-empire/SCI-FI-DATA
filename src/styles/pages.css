@@ -1129,6 +1129,15 @@
   cursor: pointer;
 }
 
+/* The 6-digit code typed after a phone sign-up: big, spaced digits, centred. */
+.field.otp .field__input {
+  font-size: 1.6rem;
+  font-weight: 600;
+  letter-spacing: 0.5em;
+  text-align: center;
+  padding-left: 0.5em; /* balances the trailing letter-spacing so the digits sit in the middle */
+}
+
 .about__aka {
   color: var(--ink-2);
   font-weight: 400;

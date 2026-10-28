@@ -1,17 +1,22 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { accountsApi } from '../services/rest';
-import { cleanPhone, phoneToEmail } from '../lib/phone';
+import { cleanPhone, phoneToEmail, toE164 } from '../lib/phone';
 import { session } from '../lib/storage';
-import { isUnconfirmed, loginError, signupError } from '../lib/authErrors';
+import { codeError, isBadCredentials, isUnconfirmed, loginError, signupError } from '../lib/authErrors';
+import { phoneCodesEnabled } from '../services/phoneCodes';
 
 const AuthContext = createContext(null);
 
 const TOKEN_KEY = 'sf_token'; // same key the original Babor-Api app used
 const REFRESH_KEY = 'sf_refresh';
 
+// An account made with a verified phone number has no email. Payments still need one, so give it the same stand-in
+// address that older phone accounts sign in with.
+const emailOf = (authUser) => authUser.email || (authUser.phone ? phoneToEmail(cleanPhone(authUser.phone)) : '');
+
 const toUser = (authUser, profile, token) => ({
   id: authUser.id,
-  email: authUser.email,
+  email: emailOf(authUser),
   first_name: profile?.first_name || '',
   last_name: profile?.last_name || '',
   phone: profile?.phone || '',
@@ -118,14 +123,27 @@ export function AuthProvider({ children }) {
       const trimmed = identifier.trim();
       // A phone number has no "@" and is made of digits (also "+233 54 123 4567"); anything else is an email.
       const isPhone = !trimmed.includes('@') && /^\+?[\d\s().-]{9,}$/.test(trimmed);
-      const email = isPhone ? phoneToEmail(cleanPhone(trimmed)) : trimmed;
+      const legacyEmail = isPhone ? phoneToEmail(cleanPhone(trimmed)) : trimmed;
+      const byPhone = () => accountsApi.auth.signInPhone(toE164(trimmed), password);
+      const byEmail = () => accountsApi.auth.signIn(legacyEmail, password);
+      // A phone number can belong to either kind of account: a verified phone account, or an older one that signs
+      // in through a stand-in email. Try the likelier kind first and the other only when the details did not match.
+      const attempts = !isPhone ? [byEmail] : (await phoneCodesEnabled()) ? [byPhone, byEmail] : [byEmail, byPhone];
       let d;
-      try {
-        d = await accountsApi.auth.signIn(email, password);
-      } catch (err) {
-        throw Object.assign(friendly(loginError(err, isPhone ? 'phone' : 'email', email), err), {
-          unconfirmed: isUnconfirmed(err),
-          email,
+      let failure;
+      for (const attempt of attempts) {
+        try {
+          d = await attempt();
+          break;
+        } catch (err) {
+          failure = err;
+          if (!isBadCredentials(err)) break;
+        }
+      }
+      if (!d) {
+        throw Object.assign(friendly(loginError(failure, isPhone ? 'phone' : 'email', legacyEmail), failure), {
+          unconfirmed: isUnconfirmed(failure),
+          email: legacyEmail,
         });
       }
       storeSession(d.access_token, d.refresh_token);
@@ -148,24 +166,28 @@ export function AuthProvider({ children }) {
 
   const signUp = useCallback(
     async ({ firstName, lastName, phone, email, password, method }) => {
+      // When the project texts a code to confirm phone numbers, a phone account is created on the real number and is
+      // activated by the code. Otherwise the older way is used: a stand-in email, no code.
+      const withCode = method === 'phone' && (await phoneCodesEnabled());
       const loginEmail = method === 'phone' ? phoneToEmail(phone) : email.trim();
+      const details = { first_name: firstName, last_name: lastName, phone: phone || '' };
       let d;
       try {
-        d = await accountsApi.auth.signUp(loginEmail, password, {
-          first_name: firstName,
-          last_name: lastName,
-          phone: phone || '',
-        });
+        d = withCode
+          ? await accountsApi.auth.signUpPhone(toE164(phone), password, details)
+          : await accountsApi.auth.signUp(loginEmail, password, details);
       } catch (err) {
         throw friendly(signupError(err, method), err);
       }
       if (!d.access_token) {
-        // With "confirm email" on, Supabase answers with the bare user object (no session). An address that is
+        // With confirmation on, Supabase answers with the bare user object (no session). A number or address that is
         // already registered comes back looking like a new user, but with no identities.
         const created = d.user || d;
         if (Array.isArray(created.identities) && created.identities.length === 0) {
           throw friendly(signupError({ code: 'user_already_exists' }, method));
         }
+        // The code has been texted; the person types it on the next screen.
+        if (withCode) return { needsCode: true, phone };
         // The project requires email confirmation before a session exists.
         return { needsConfirmation: true, email: loginEmail, method };
       }
@@ -186,6 +208,42 @@ export function AuthProvider({ children }) {
     },
     [storeSession],
   );
+
+  /** Check the code texted to a new phone account. On success the person is signed in. */
+  const verifyPhone = useCallback(
+    async ({ phone, code }) => {
+      let d;
+      try {
+        d = await accountsApi.auth.verifyPhone(toE164(phone), String(code).trim());
+      } catch (err) {
+        throw friendly(codeError(err), err);
+      }
+      storeSession(d.access_token, d.refresh_token);
+      // The names were saved with the sign-up, so a page reload between the two steps loses nothing.
+      const meta = d.user?.user_metadata || {};
+      const details = { first_name: meta.first_name || '', last_name: meta.last_name || '', phone: meta.phone || cleanPhone(phone) };
+      if (d.user?.id) await createProfile(d.user.id, details, d.access_token);
+      const next = {
+        id: d.user?.id,
+        email: emailOf(d.user || { phone }),
+        ...details,
+        wallet_balance: 0,
+        token: d.access_token,
+      };
+      setUser(next);
+      return next;
+    },
+    [storeSession],
+  );
+
+  /** Text the sign-up code again. */
+  const resendCode = useCallback(async (phone) => {
+    try {
+      await accountsApi.auth.resendSms(toE164(phone));
+    } catch (err) {
+      throw friendly(codeError(err), err);
+    }
+  }, []);
 
   const resendConfirmation = useCallback(async (email) => {
     try {
@@ -232,8 +290,8 @@ export function AuthProvider({ children }) {
   );
 
   const value = useMemo(
-    () => ({ user, ready, signIn, signUp, resendConfirmation, signOut: clearSession, authed, reloadProfile, updateProfile }),
-    [user, ready, signIn, signUp, resendConfirmation, clearSession, authed, reloadProfile, updateProfile],
+    () => ({ user, ready, signIn, signUp, verifyPhone, resendCode, resendConfirmation, signOut: clearSession, authed, reloadProfile, updateProfile }),
+    [user, ready, signIn, signUp, verifyPhone, resendCode, resendConfirmation, clearSession, authed, reloadProfile, updateProfile],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

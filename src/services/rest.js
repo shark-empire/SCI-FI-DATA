@@ -86,6 +86,19 @@ export function createClient({ url, anon }) {
         request('POST', '/auth/v1/signup', { body: { email, password, ...(data ? { data } : {}) } }),
       /** Send the sign-up confirmation email again. */
       resend: (email) => request('POST', '/auth/v1/resend', { body: { type: 'signup', email } }),
+
+      // Phone accounts: the number itself is the identity, and a 6-digit code texted to it confirms it.
+      // `phone` is always international ("+233541234567").
+      signInPhone: (phone, password) =>
+        request('POST', '/auth/v1/token?grant_type=password', { body: { phone, password } }),
+      signUpPhone: (phone, password, data) =>
+        request('POST', '/auth/v1/signup', { body: { phone, password, ...(data ? { data } : {}) } }),
+      /** Check the texted code. Answers with a session when it is right. */
+      verifyPhone: (phone, token) => request('POST', '/auth/v1/verify', { body: { type: 'sms', phone, token } }),
+      /** Text the sign-up code again. */
+      resendSms: (phone) => request('POST', '/auth/v1/resend', { body: { type: 'sms', phone } }),
+      /** Public settings of the project: which sign-in methods are on and whether codes are required. */
+      settings: (signal) => request('GET', '/auth/v1/settings', { signal }),
       refresh: (refreshToken) =>
         request('POST', '/auth/v1/token?grant_type=refresh_token', { body: { refresh_token: refreshToken } }),
       user: (token) => request('GET', '/auth/v1/user', { token }),
