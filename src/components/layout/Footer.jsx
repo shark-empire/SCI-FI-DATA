@@ -28,6 +28,7 @@ const COLUMNS = [
     links: [
       { to: '/how-it-works', label: 'How it works' },
       { to: '/support', label: 'Support' },
+      { to: '/about', label: 'About us' },
       { to: '/developers', label: 'Developers' },
     ],
   },

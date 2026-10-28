@@ -1128,3 +1128,8 @@
   text-decoration: underline;
   cursor: pointer;
 }
+
+.about__aka {
+  color: var(--ink-2);
+  font-weight: 400;
+}

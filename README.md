@@ -100,24 +100,35 @@ security definer
 set search_path = public
 as $$
   select json_build_object(
-    'status',     o.status,
-    'amount',     o.amount,
-    'created_at', o.created_at,
+    'status',      o.status,
+    'amount',      o.amount,
+    'created_at',  o.created_at,
     'bundle_name', b.name,
-    'size_gb',    b.size_gb,
-    'network',    b.network,
-    'phone',      left(o.customer_phone::text, 3) || '****' || right(o.customer_phone::text, 3),
-    'store_name', s.name,
-    'store_slug', s.slug
+    'size_gb',     b.size_gb,
+    'network',     b.network,
+    'phone',       left(o.customer_phone::text, 3) || '****' || right(o.customer_phone::text, 3),
+    'store_name',  s.name,
+    'store_slug',  s.slug
   )
   from orders o
-  left join bundles b on b.id = o.bundle_id
-  left join stores  s on s.id = o.store_id
+  left join bundles b on b.id::text = o.bundle_id::text
+  left join stores  s on s.id::text = o.store_id::text
   where o.paystack_reference = p_reference
   limit 1;
 $$;
 
 grant execute on function public.track_store_order(text) to anon, authenticated;
+```
+
+The joins compare ids as text so the function works whatever types your id columns have. Check that `orders.bundle_id` and `bundles.id` have the **same type** (both `uuid`, or both `bigint`): the site saves each order with the bundle's id, and the database refuses the order if the types differ. This query shows them:
+
+```sql
+select table_name, column_name, data_type
+from information_schema.columns
+where table_schema = 'public'
+  and ((table_name = 'orders'  and column_name in ('bundle_id', 'store_id'))
+    or (table_name in ('bundles', 'stores') and column_name = 'id'))
+order by table_name, column_name;
 ```
 
 Without it the tracker tries to read the `orders` table directly, which only works if your policies let visitors read orders. Do not open the table to everyone just for this; use the function. A customer can only look up an order whose reference they were given (it contains a timestamp and random letters), and another store's references are shown as "not found" on this store's page.
@@ -139,6 +150,25 @@ When you buy a domain, a good split is `yourdomain.com` for the main site and a 
 - Left out: wallet top-up and pay-from-wallet (the site already has one wallet, and the Store's `deduct_wallet_balance` function took a user id from the browser), the phone-OTP login (it never created a session), the fabricated testimonials, and the "pretend the payment worked" fallback when Paystack could not load. Also dropped: Tailwind, framer-motion, three, lucide, the Supabase SDK and the debug console (eruda). The pages that used them were rebuilt in the site's own style.
 - Fixed: the bundle validity typo (`validit`) that made every bundle `90DAYS`; the dashboard calling a function that did not exist; sellers' totals being worked out from only the last 50 orders; store links that would not have worked on a static host (they are now `#/s/<slug>` and are built from wherever the site is hosted, or from `VITE_STORE_LINK_BASE`).
 - A store's accent colour is checked (`#rrggbb` only) before it reaches the page, and uploaded logos must be a PNG, JPG, WebP or GIF under 2 MB.
+
+## Search and link previews
+
+**What is set up.** The page's HTML carries everything a search engine or a chat app reads without running the site: a title and description that say who SCI-FI DATA is and name the domain, the canonical address (`https://scifidata.store/`), Open Graph and Twitter card tags, and structured data (JSON-LD) that declares the organization, every spelling of the name (`SCI-FI DATA`, `SciFi Data`, `Sci-Fi Data`, `SCIFI DATA`, `scifidata`, `scifidata.store`), the company that operates it, the founder, contact details and social profiles. The build also writes `robots.txt` and `sitemap.xml`. There is an **About us** page (`#/about`, linked from the footer) with the same facts for visitors.
+
+**Edit one file: `src/config/profile.json`.** It holds the brand name, site address, spellings, title and description, the company (`organization.legalName`, `foundingYear`), the founder (`name`, `title`, `about`), phone, email, `social` profile links and the search-console verification codes. Anything left blank is simply left out; nothing is invented. Commit the change and the site redeploys. If your main address is `www.scifidata.store` rather than `scifidata.store`, change `siteUrl` to match.
+
+**The picture shown when the link is shared** is `public/og-image.jpg` (1200 x 630, under 300 KB so WhatsApp shows it), made from your flyer. The full flyer is `public/flyer.jpg`. To change the picture, replace `og-image.jpg` with another 1200 x 630 JPEG under 300 KB. WhatsApp, Facebook and others remember the old preview for a while: for Facebook use its Sharing Debugger and click "Scrape again"; WhatsApp usually refreshes within a day, or share the link with `?v=2` on the end to see it at once.
+
+**To get the domain showing in Google for the brand name** (this part only you can do, and no site can force it):
+
+1. Add `https://scifidata.store` as a property in Google Search Console. Choose the HTML tag method, copy the code into `verification.google` in `profile.json`, redeploy, then press Verify. (Or verify with the DNS record at your domain registrar.)
+2. In Search Console submit `https://scifidata.store/sitemap.xml`, then use URL Inspection on the home page and press "Request indexing".
+3. Do the same in Bing Webmaster Tools (it can import your Google setup). Put its code in `verification.bing` if it asks for a tag.
+4. Use the exact same name and website everywhere else you exist: WhatsApp Business profile, Facebook, Instagram, TikTok, X, LinkedIn and a Google Business Profile if you have a place or service area. Add those links to `social` so search engines can tie them together.
+
+New sites usually take days to weeks to appear. Whether Google shows a panel about the founder or the company is Google's decision and depends on outside sources as well; the structured data only makes the facts easy for it to find.
+
+**One limit to know.** The site uses `#` addresses (`#/data`, `#/about`), and search engines treat everything after the `#` as the same page. So the home page is what gets indexed; individual pages like Data bundles will not appear as separate results. Fixing that would mean switching to plain addresses (`/data`) and a host that serves them, which is a bigger change.
 
 ## Things you need to finish before taking real money
 

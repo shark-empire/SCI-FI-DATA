@@ -21,6 +21,7 @@ const Track = lazy(() => import('./pages/Track'));
 const Guide = lazy(() => import('./pages/Guide'));
 const Developers = lazy(() => import('./pages/Developers'));
 const Support = lazy(() => import('./pages/Support'));
+const About = lazy(() => import('./pages/About'));
 const Terms = lazy(() => import('./pages/Legal').then((m) => ({ default: m.Terms })));
 const Privacy = lazy(() => import('./pages/Legal').then((m) => ({ default: m.Privacy })));
 const Login = lazy(() => import('./pages/Auth').then((m) => ({ default: m.Login })));
@@ -53,6 +54,7 @@ const PUBLIC_ROUTES = {
   '/how-it-works': Guide,
   '/developers': Developers,
   '/support': Support,
+  '/about': About,
   '/terms': Terms,
   '/privacy': Privacy,
   '/login': Login,
