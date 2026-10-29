@@ -102,7 +102,14 @@ export function AuthProvider({ children }) {
           if (!token) throw err;
           authUser = await accountsApi.auth.user(token);
         }
-        const profile = await fetchProfile(authUser, token);
+        let profile = await fetchProfile(authUser, token);
+        if (profile === null && authUser.user_metadata?.first_name) {
+          // Someone who has just opened the confirmation email's link has a session but no profile row yet:
+          // the sign-up could not save one before the email was confirmed. Build it from the sign-up details.
+          const m = authUser.user_metadata;
+          const fresh = { first_name: m.first_name, last_name: m.last_name || '', phone: m.phone || '' };
+          if (await createProfile(authUser.id, fresh, token)) profile = fresh;
+        }
         if (!cancelled) {
           tokenRef.current = token;
           setUser(toUser(authUser, profile, token));

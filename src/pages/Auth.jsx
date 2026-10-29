@@ -41,7 +41,12 @@ export function Login() {
   const [id, setId] = useState('');
   const [pw, setPw] = useState('');
   const [busy, setBusy] = useState(false);
-  const [problem, setProblem] = useState(null); // { message, unconfirmedEmail? }
+  // A confirmation link that was expired or already used sends people here with ?notice=link.
+  const [problem, setProblem] = useState(
+    search.get('notice') === 'link'
+      ? { message: 'That link has expired or was already used. If you have confirmed your email before, just log in. If not, create the account again to get a fresh link.' }
+      : null,
+  ); // { message, unconfirmedEmail? }
 
   useEffect(() => {
     if (user) navigate(next, { replace: true });
