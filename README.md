@@ -157,6 +157,8 @@ When you buy a domain, a good split is `yourdomain.com` for the main site and a 
 
 **Edit one file: `src/config/profile.json`.** It holds the brand name, site address, spellings, title and description, the company (`organization.legalName`, `foundingYear`), the founder (`name`, `title`, `about`), phone, email, `social` profile links and the search-console verification codes. Anything left blank is simply left out; nothing is invented. Commit the change and the site redeploys. If your main address is `www.scifidata.store` rather than `scifidata.store`, change `siteUrl` to match.
 
+**Sitemap and robots files.** `public/sitemap.xml` and `public/robots.txt` are plain files that are served as `https://scifidata.store/sitemap.xml` and `https://scifidata.store/robots.txt` (the build also generates the same two from `profile.json`). They name `https://scifidata.store`; **if you change `siteUrl` in `profile.json` (for example to the `www` address), edit these two files to match.**
+
 **The picture shown when the link is shared** is `public/og-image.jpg` (1200 x 630, under 300 KB so WhatsApp shows it), made from your flyer. The full flyer is `public/flyer.jpg`. To change the picture, replace `og-image.jpg` with another 1200 x 630 JPEG under 300 KB. WhatsApp, Facebook and others remember the old preview for a while: for Facebook use its Sharing Debugger and click "Scrape again"; WhatsApp usually refreshes within a day, or share the link with `?v=2` on the end to see it at once.
 
 **To get the domain showing in Google for the brand name** (this part only you can do, and no site can force it):
