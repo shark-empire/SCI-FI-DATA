@@ -13,6 +13,12 @@ export const isUnconfirmed = (err) => has(err, 'email_not_confirmed', 'email not
 /** True when the server said the sign-in details do not match an account (as opposed to a problem on our side). */
 export const isBadCredentials = (err) => has(err, 'invalid_credentials', 'invalid login', 'invalid_grant', 'invalid credentials');
 
+/** The server's own words in brackets, added to failures that are not the customer's doing so the cause can be read off a screenshot. */
+const detail = (err) => {
+  const m = String(err?.message || '').replace(/\s+/g, ' ').trim();
+  return m && m.length <= 220 ? ` (${m})` : '';
+};
+
 /** Reasons that have nothing to do with what the person typed. */
 function commonProblem(err) {
   if (!err) return null;
@@ -25,7 +31,7 @@ function commonProblem(err) {
   if (has(err, 'api key', 'apikey')) {
     return 'The site’s connection key was rejected. Please contact support.';
   }
-  if (err.status >= 500) return 'The server had a problem. Try again in a moment.';
+  if (err.status >= 500) return `The server had a problem. Try again in a moment.${detail(err)}`;
   return null;
 }
 
@@ -71,7 +77,7 @@ export function codeError(err) {
 
 export function signupError(err, kind = 'email') {
   if (has(err, 'sms_send_failed', 'sending confirmation sms', 'error sending sms', 'sms provider')) {
-    return 'We couldn’t text a code to that number. Check the number and try again. If it keeps failing, contact support.';
+    return `We couldn’t text a code to that number. Check the number and try again. If it keeps failing, contact support.${detail(err)}`;
   }
   if (has(err, 'phone_provider_disabled', 'phone signups are disabled', 'unsupported phone provider')) {
     return 'Phone sign-up is switched off right now. Contact support.';
