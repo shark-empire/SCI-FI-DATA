@@ -1,19 +1,24 @@
 {
   "brand": "SCI-FI DATA",
   "siteUrl": "https://scifidata.store",
-  "alternateNames": ["SciFi Data", "Sci-Fi Data", "SCIFI DATA", "scifidata", "scifidata.store"],
+  "alternateNames": ["SciFi Data", "Sci-Fi Data", "SCIFI DATA", "scifidata", "scifidata.store", "sci-fidata", "SCI-FI DATA Ghana"],
   "title": "SCI-FI DATA | Affordable data bundles in Ghana",
   "description": "SCI-FI DATA (scifidata.store) sells MTN, Telecel and AirtelTigo data bundles and WAEC results checkers in Ghana. Pay with Mobile Money or card.",
   "organization": {
     "legalName": "Sci-Fi Tech Inc",
-    "foundingYear": "",
+    "foundingYear": "2025",
     "country": "Ghana",
     "countryCode": "GH"
   },
   "founder": {
-    "name": "",
+    "name": "BABOR",
     "title": "Founder",
-    "about": ""
+    "about": "Babor Shakul Abubakari Founder & CEO of SCI-FI DATA Babor Abubakari is the founder of SCI-FI DATA, 
+              a Ghanaian digital platform established with a vision of making internet access more affordable and accessible. With a passion for technology, 
+              innovation and entrepreneurship, he believes digital connectivity should not be a luxury but an accessible part of everyday life. Through SCI-FI DATA, 
+              he aims to simplify how people purchase mobile data bundles by providing affordable options, convenient services and a customer-focused experience. 
+              His vision extends beyond selling data bundles. He aspires to build a technology-driven brand that contributes to Ghana’s growing digital economy and makes connectivity easier for individuals and businesses.
+              His philosophy: Technology should make life easier, opportunities more accessible and the future more connected."
   },
   "phone": "+233540753328",
   "email": "",
