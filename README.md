@@ -190,9 +190,52 @@ How it behaves: sign-up asks for the number, texts a code, and the account is cr
 
 To turn it off, switch off *Enable phone confirmations*; the site goes back to the older sign-up on its own.
 
+## Results checkers: prices from Supabase, and SMS or email delivery
+
+**Prices.** The checker prices are read from the `results_products` table of the **data** Supabase project each time the site is opened (and again just before a payment), so you change a price by editing a row in the Supabase dashboard (*Table Editor → results_products*) and it is live straight away. No deploy. Run `supabase/results_products.sql` once to create the table with today's prices (20, and 17 each for more than 5).
+
+| Column | Meaning |
+| --- | --- |
+| `id` | `wassce_checker`, `novdec_checker`, `bece_checker`. These ids are what your payment webhook receives as `product_id`, so keep them. |
+| `name`, `description` | The button text. Optional: when empty the built-in wording is used. |
+| `price` | One checker, in cedis (for example `20` or `22.50`). |
+| `bulk_price` | Price of each when someone buys **more than** `bulk_threshold`. Leave empty for no bulk price. It only counts when it is lower than `price`. |
+| `bulk_threshold` | See above (default 5). |
+| `is_active` | Untick to show the exam as "Unavailable". |
+| `sort_order` | Smaller numbers are listed first. |
+
+How it behaves:
+- If the table does not exist yet, or has no usable rows, the site shows the built-in prices from `src/config/site.js`, so it keeps working. **That also means a missing read policy shows the old prices**: if a price you changed does not appear, check that the policy "Anyone can read checker prices" exists (the SQL file creates it).
+- If the table exists but cannot be reached, the site does not guess: it says it could not load the prices and the Pay button stays off until it can.
+- Just before the payment window opens, the page reads the prices once more. If you changed them while the customer had the page open, they are told the price was updated and shown the new total, so nobody pays an old price.
+- A row with no usable price (empty, 0, not a number) is ignored.
+
+**The webhook must check the amount itself.** The price shown in the browser is only what the page charges. The service behind `VITE_RESULTS_VERIFY_URL` must work out the expected amount from the same table (`price`, or `bulk_price` when `quantity` is more than `bulk_threshold`, times `quantity`), compare it with the amount Paystack reports for the reference, and only then release PINs. Do not trust the `unit_price` sent in the Paystack metadata: a customer can change what their own browser sends.
+
+**SMS or email delivery.** The customer chooses how to receive the PIN (SMS is the default). The choice is sent to your webhook so it can route the message:
+
+```json
+POST VITE_RESULTS_VERIFY_URL
+{
+  "reference": "RC-1730000000000-ab12c",
+  "product_id": "bece_checker",
+  "quantity": 7,
+  "delivery": "sms",            // or "email"
+  "delivery_to": "0241112222",  // the number (local form, 0 + 9 digits) or the email address chosen
+  "email": "",                  // what the customer typed, may be empty when they chose SMS
+  "phone": "0241112222"         // what the customer typed, may be empty when they chose email
+}
+```
+
+The same fields are in the Paystack metadata of the payment (`phone`, `email`, `delivery`, `delivery_to`, plus `product_id`, `product_name`, `quantity`, `unit_price`, `bulk_discount_applied`), for a Paystack webhook that routes on its own. Notes:
+- `delivery: "sms"` means text the PIN and serial number to `delivery_to`. For an SMS service that wants the international form, use `233` followed by the number without its leading `0`.
+- `delivery: "email"` means email them to `delivery_to`.
+- The response must still contain `{ "pins": [{ "pin": "...", "serial": "..." }] }`, because the page also shows them on screen.
+- Someone who chose SMS and gave no email still pays: Paystack is given a stand-in address (`0241112222@sci-fidata.com`), the same way data bundles work. It appears in `email` as empty, and in Paystack's own customer email.
+
 ## Things you need to finish before taking real money
 
-1. **Results checkers need a backend.** The original Babor project called `https://your-backend-url.com/api/verify-payment`, which never existed. Point `VITE_RESULTS_VERIFY_URL` at a service that verifies the Paystack reference **server-side** and returns `{ "pins": [{ "pin": "...", "serial": "..." }] }`. The page sends `{ reference, product_id, quantity }`. Until then the page shows a clear error and keeps the payment reference so the customer can contact you. Also set `VITE_RESULTS_PAYSTACK_KEY` to a live key when you go live: the default is a test key.
+1. **Results checkers need a backend.** The original Babor project called `https://your-backend-url.com/api/verify-payment`, which never existed. Point `VITE_RESULTS_VERIFY_URL` at a service that verifies the Paystack reference **server-side** and returns `{ "pins": [{ "pin": "...", "serial": "..." }] }`. The page sends `{ reference, product_id, quantity, delivery, delivery_to, email, phone }` (see "Results checkers: prices from Supabase, and SMS or email delivery" above). Until then the page shows a clear error and keeps the payment reference so the customer can contact you. Also set `VITE_RESULTS_PAYSTACK_KEY` to a live key when you go live: the default is a test key.
 2. **Wallet top-ups carry a 3% fee.** On *Add money* the customer pays the amount plus 3% (Paystack's processing fee) and the wallet should receive only the amount they typed: pay GH₵ 51.50, get GH₵ 50.00. The Paystack charge is the total; the metadata sent with it is `{ type: 'wallet_funding', user_id, wallet_credit: 50, fee: 1.5, fee_percent: 3 }`. **Whatever credits the balance (your Paystack webhook or automation) must credit `wallet_credit`, not the amount Paystack reports**, or customers will be credited the fee as well. Change the rate with `VITE_WALLET_FEE_PERCENT`.
 3. **Wallet payments.** The original wallet-purchase webhook was a `YOUR_WALLET_FLOW_ID` placeholder. Set `VITE_WALLET_PURCHASE_URL` and the "Pay from wallet" option appears automatically. The flow must debit the balance server-side.
 4. **Rotate the exposed admin webhook.** The original `api.html` had the Make.com transfer webhook and an admin key in public source. Treat them as compromised and regenerate them. This site does not embed them. To use the admin page, set `VITE_DATA_TRANSFER_URL`; it is sent an `admin_key` that you type in, and it is still only a courtesy gate, so enforce authorisation in the webhook itself.
@@ -231,13 +274,14 @@ The look takes its ideas from the structure and public design language of shopif
 ```
 supabase/
   functions/send-sms/   the Supabase "Send SMS" hook that texts sign-up codes through mNotify
+  results_products.sql  creates the table that holds the results checker prices
 src/
   config/       env.js (runtime config), site.js (brand, networks, FAQ, results products)
   lib/          format, phone validation, ids/references, storage, rate limit, live (pointer and click effects)
   services/     rest.js (Supabase), phoneCodes.js (are SMS codes on?), webhooks.js, paystack.js, stores.js (reseller stores)
   context/      Theme, Toast, Auth, Seller (store owners' own sign-in)
   StoresApp.jsx the stores-only app used when VITE_SITE_MODE=stores
-  hooks/        useBundles, usePageTitle, useTint (sets the colour of the glass)
+  hooks/        useBundles, useResultsProducts (checker prices), usePageTitle, useTint (sets the colour of the glass)
   components/   ui.jsx, Logo, RateCard, LiveFX (backdrop + click layer), layout/ (Header, Footer, TabBar, layouts)
   pages/        public pages, account/ (signed in), admin/, stores/ (marketplace, store pages, builder), seller/ (dashboard)
   styles/       tokens, base, components, layout, pages, home, stores, glass

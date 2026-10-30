@@ -6,7 +6,8 @@ import { Link } from '../router';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { useTint } from '../hooks/useTint';
 import { useBundles } from '../hooks/useBundles';
-import { site, FAQ, NETWORKS, RESULTS_BULK_PRICE, RESULTS_BULK_THRESHOLD, RESULTS_PRODUCTS, RESULTS_REGULAR_PRICE } from '../config/site';
+import { useResultsProducts } from '../hooks/useResultsProducts';
+import { site, FAQ, NETWORKS } from '../config/site';
 import { money } from '../lib/format';
 import { config } from '../config/env';
 
@@ -42,6 +43,7 @@ const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia('
 export default function Home() {
   usePageTitle(null);
   const { bundles } = useBundles();
+  const { products: checkers, status: checkerStatus } = useResultsProducts();
 
   // The headline names a network. It steps through all three once, then stays where the visitor leaves it.
   // Whatever network is showing also sets the colour of the glass.
@@ -71,6 +73,20 @@ export default function Home() {
     const prices = bundles.filter((b) => b.available).map((b) => b.price);
     return prices.length ? Math.min(...prices) : null;
   }, [bundles]);
+
+  // Results checker prices come from Supabase (see hooks/useResultsProducts); nothing is shown until they have loaded.
+  const checkerInfo = useMemo(() => {
+    const on = checkers.filter((p) => p.available);
+    if (checkerStatus !== 'ready' || !on.length) return null;
+    const withBulk = on.filter((p) => p.bulkPrice != null);
+    const sameBulk = withBulk.length > 0 && withBulk.every((p) => p.bulkPrice === withBulk[0].bulkPrice && p.bulkThreshold === withBulk[0].bulkThreshold);
+    return {
+      lowest: Math.min(...on.map((p) => p.price)),
+      lowestBulk: withBulk.length ? Math.min(...withBulk.map((p) => p.bulkPrice)) : null,
+      sameBulk,
+      threshold: withBulk[0]?.bulkThreshold,
+    };
+  }, [checkers, checkerStatus]);
 
   return (
     <>
@@ -131,8 +147,14 @@ export default function Home() {
               <span className="statband__label">is how long most bundles take to arrive</span>
             </li>
             <li className="statband__item">
-              <span className="statband__num"><Price value={RESULTS_BULK_PRICE} /></span>
-              <span className="statband__label">per results checker when you buy more than {RESULTS_BULK_THRESHOLD}</span>
+              <span className="statband__num">{!checkerInfo ? '–' : <Price value={checkerInfo.lowestBulk ?? checkerInfo.lowest} />}</span>
+              <span className="statband__label">
+                {checkerInfo?.lowestBulk == null
+                  ? 'for a results checker'
+                  : checkerInfo.sameBulk
+                    ? `per results checker when you buy more than ${checkerInfo.threshold}`
+                    : 'per results checker at our lowest bulk price'}
+              </span>
             </li>
           </ul>
         </div>
@@ -179,18 +201,29 @@ export default function Home() {
 
             <article className="offer offer--results" data-tint="results">
               <h3 className="offer__title">Results checkers</h3>
-              <p className="offer__text">A PIN and serial number to check results online. Delivered on screen and by email.</p>
+              <p className="offer__text">A PIN and serial number to check results online. Shown on screen, and sent by SMS or email, your choice.</p>
               <ul className="pricelist">
-                {RESULTS_PRODUCTS.map((p) => (
+                {checkers.map((p) => (
                   <li key={p.id}>
                     <span>{p.name}</span>
-                    <span className="pricelist__price">{money(RESULTS_REGULAR_PRICE)}</span>
+                    <span className="pricelist__price">{p.available ? money(p.price) : 'Unavailable'}</span>
                   </li>
                 ))}
+                {checkerStatus !== 'ready' && (
+                  <li>
+                    <span>{checkerStatus === 'loading' ? 'Loading prices…' : 'Prices are not available right now.'}</span>
+                  </li>
+                )}
               </ul>
-              <p className="offer__note">
-                Buying more than {RESULTS_BULK_THRESHOLD}? Each one costs <strong>{money(RESULTS_BULK_PRICE)}</strong>.
-              </p>
+              {checkerInfo?.lowestBulk != null && (
+                <p className="offer__note">
+                  {checkerInfo.sameBulk ? (
+                    <>Buying more than {checkerInfo.threshold}? Each one costs <strong>{money(checkerInfo.lowestBulk)}</strong>.</>
+                  ) : (
+                    <>Buying in bulk? Each one costs as little as <strong>{money(checkerInfo.lowestBulk)}</strong>.</>
+                  )}
+                </p>
+              )}
               <Button to="/results" variant="primary">Choose a checker</Button>
             </article>
           </div>

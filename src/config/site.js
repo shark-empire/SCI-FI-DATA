@@ -60,6 +60,6 @@ export const FAQ = [
   },
   {
     q: 'Where do I find my results checker PIN?',
-    a: 'Right after payment, on the results checker page. A copy is also sent to the email address you entered.',
+    a: 'Right after payment, on the results checker page. A copy is also sent by SMS or email, whichever you choose.',
   },
 ];

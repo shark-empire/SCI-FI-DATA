@@ -51,8 +51,17 @@ export async function purchaseWithWallet({ token, userId, bundleId, recipientPho
 }
 
 /** Exchange a paid Paystack reference for results checker PINs. */
-export async function fetchResultsPins({ reference, productId, quantity }) {
-  return postJson(config.hooks.resultsVerify, { reference, product_id: productId, quantity });
+export async function fetchResultsPins({ reference, productId, quantity, delivery, deliveryTo, email, phone }) {
+  return postJson(config.hooks.resultsVerify, {
+    reference,
+    product_id: productId,
+    quantity,
+    // How the customer wants the PIN sent ("sms" or "email") and where, so the webhook can route it.
+    delivery,
+    delivery_to: deliveryTo,
+    email: email || '',
+    phone: phone || '',
+  });
 }
 
 export async function sendDataTransfer(payload) {
