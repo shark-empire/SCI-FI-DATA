@@ -78,7 +78,7 @@ export const config = {
       'https://cloud.activepieces.com/api/v1/webhooks/YOUR_WALLET_FLOW_ID',
     ),
     // Still a placeholder in the source project: PIN delivery needs this backend.
-    resultsVerify: val('VITE_RESULTS_VERIFY_URL', 'https://your-backend-url.com/api/verify-payment'),
+    resultsVerify: val('VITE_RESULTS_VERIFY_URL', 'https://cloud.activepieces.com/api/v1/webhooks/W1K1oiTMwbfixKHN7dcfh'),
     // Deliberately empty: the original admin webhook was publicly embedded in api.html.
     dataTransfer: val('VITE_DATA_TRANSFER_URL', ''),
   },
