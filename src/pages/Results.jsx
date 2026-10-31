@@ -34,6 +34,7 @@ export default function Results() {
   const [phase, setPhase] = useState('form'); // form | verifying | done | error
   const [pins, setPins] = useState([]);
   const [lastRef, setLastRef] = useState('');
+  const [failure, setFailure] = useState(''); // why fetching the PINs failed, shown in small print so the cause can be read off a screenshot
   const [snapshot, setSnapshot] = useState(null); // what was bought, kept for the voucher screen
 
   useEffect(() => {
@@ -79,7 +80,8 @@ export default function Results() {
       if (!list.length) throw new Error('No vouchers returned');
       setPins(list);
       setPhase('done');
-    } catch {
+    } catch (err) {
+      setFailure(err?.message || '');
       setPhase('error');
     }
   };
@@ -194,6 +196,7 @@ export default function Results() {
             sort it out.
           </p>
           <p className="receipt__ref receipt__ref--center"><span>Reference</span><code>{lastRef}</code><CopyButton text={lastRef} /></p>
+          {failure && <p className="status__fine">Reason: {failure}</p>}
           <div className="status__actions">
             <Button onClick={() => verify(lastRef, snapshot)}>Try again</Button>
             <Button variant="secondary" href={site.whatsappUrl(`Hi, I paid for a results checker but did not get my PIN. Reference: ${lastRef}`)} target="_blank" rel="noreferrer">Message support</Button>
