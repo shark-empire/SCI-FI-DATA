@@ -10,6 +10,7 @@ import { config } from '../config/env';
 import { site } from '../config/site';
 import { money } from '../lib/format';
 import { resultsRef } from '../lib/ids';
+import { describeReply, readPins } from '../lib/pins';
 import { validatePhone, digitsOnly, cleanPhone, prettyPhone } from '../lib/phone';
 import { fetchResultsPins } from '../services/webhooks';
 import { loadPaystack, openPaystack } from '../services/paystack';
@@ -76,8 +77,8 @@ export default function Results() {
         email: snap.email,
         phone: snap.phone,
       });
-      const list = Array.isArray(data.pins) ? data.pins : [];
-      if (!list.length) throw new Error('No vouchers returned');
+      const list = readPins(data);
+      if (!list.length) throw new Error(`No vouchers returned. ${describeReply(data)}`.trim());
       setPins(list);
       setPhase('done');
     } catch (err) {
@@ -158,7 +159,7 @@ export default function Results() {
   };
 
   const download = () => {
-    const lines = pins.map((p, i) => `Voucher ${i + 1}\nPIN: ${p.pin}\nSerial number: ${p.serial}\n`);
+    const lines = pins.map((p, i) => `Voucher ${i + 1}\nPIN: ${p.pin}\n${p.serial ? `Serial number: ${p.serial}\n` : ''}`);
     const text = `${snapshot?.name || 'Results checker'}\nReference: ${lastRef}\n\n${lines.join('\n')}`;
     const url = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
     const a = document.createElement('a');
@@ -169,7 +170,7 @@ export default function Results() {
   };
 
   const allText = useMemo(
-    () => pins.map((p, i) => `Voucher ${i + 1}: PIN ${p.pin}, Serial ${p.serial}`).join('\n'),
+    () => pins.map((p, i) => `Voucher ${i + 1}: PIN ${p.pin}${p.serial ? `, Serial ${p.serial}` : ''}`).join('\n'),
     [pins],
   );
 
@@ -231,7 +232,7 @@ export default function Results() {
                 bottom={
                   <dl className="voucher__codes">
                     <div><dt>PIN</dt><dd><code>{p.pin}</code><CopyButton text={String(p.pin)} /></dd></div>
-                    <div><dt>Serial number</dt><dd><code>{p.serial}</code><CopyButton text={String(p.serial)} /></dd></div>
+                    {p.serial && <div><dt>Serial number</dt><dd><code>{p.serial}</code><CopyButton text={String(p.serial)} /></dd></div>}
                   </dl>
                 }
               />
