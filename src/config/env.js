@@ -59,7 +59,7 @@ export const config = {
     linkBase: /^https?:\/\//i.test(val('VITE_STORE_LINK_BASE')) ? val('VITE_STORE_LINK_BASE').replace(/[#?].*$/, '').replace(/\/+$/, '') : '',
     // Paystack needs an email for every payment. Customers see it in the payment window, so on a store domain
     // set this to that domain (the part after the @).
-    payerDomain: val('VITE_STORES_PAYER_EMAIL_DOMAIN', 'sci-fidata.com'),
+    payerDomain: val('VITE_STORES_PAYER_EMAIL_DOMAIN', 'scifidata.store'),
     enabled: false,
   },
 
