@@ -75,10 +75,10 @@ export const config = {
     // Still a placeholder in the source project: wallet payment stays hidden until this is set.
     walletPurchase: val(
       'VITE_WALLET_PURCHASE_URL',
-      'https://cloud.activepieces.com/api/v1/webhooks/YOUR_WALLET_FLOW_ID',
+      'https://cloud.activepieces.com/api/v1/webhooks/ybW2HEyq5bqaMVQLRty16/sync',
     ),
     // Still a placeholder in the source project: PIN delivery needs this backend.
-    resultsVerify: val('VITE_RESULTS_VERIFY_URL', 'https://cloud.activepieces.com/api/v1/webhooks/W1K1oiTMwbfixKHN7dcfh'),
+    resultsVerify: val('VITE_RESULTS_VERIFY_URL', 'https://cloud.activepieces.com/api/v1/webhooks/W1K1oiTMwbfixKHN7dcfh/sync'),
     // Deliberately empty: the original admin webhook was publicly embedded in api.html.
     dataTransfer: val('VITE_DATA_TRANSFER_URL', ''),
   },
