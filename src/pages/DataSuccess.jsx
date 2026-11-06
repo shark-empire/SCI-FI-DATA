@@ -152,7 +152,7 @@ export default function DataSuccess() {
               }
               bottom={
                 <ol className="timeline">
-                  <li className="timeline__item is-done"><LuCircleCheck aria-hidden="true" /><div><strong>Payment confirmed</strong><span>Paystack verified your payment.</span></div></li>
+                  <li className="timeline__item is-done"><LuCircleCheck aria-hidden="true" /><div><strong>Payment confirmed</strong><span>{orderId ? 'Paid from your wallet.' : 'Paystack verified your payment.'}</span></div></li>
                   <li className="timeline__item is-active"><LuRadioTower aria-hidden="true" /><div><strong>Sending to the network</strong><span>The bundle usually arrives within 2 minutes.</span></div></li>
                 </ol>
               }

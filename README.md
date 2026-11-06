@@ -236,6 +236,24 @@ The same fields are in the Paystack metadata of the payment (`phone`, `email`, `
 - If PINs do not appear after paying, the page now prints a "Reason:" line under the message (for example "Could not reach the service", "The service returned an error (404)" or "No vouchers returned"). That line tells you which of these it is.
 - Someone who chose SMS and gave no email still pays: Paystack is given a stand-in address (`0241112222@sci-fidata.com`), the same way data bundles work. It appears in `email` as empty, and in Paystack's own customer email.
 
+## Wallet backend
+
+`supabase/wallet_backend.sql` is the whole database side of the wallet. Run it once in the SQL Editor of the project that holds `users`, `wallet_transactions`, `orders` and `bundles` (it can be run again safely). It:
+
+- changes the balance, wallet-line and order amounts from whole numbers to cedis with pesewas;
+- adds `orders.order_id`, `orders.catalog_bundle_id`, `orders.payment_method` (shown as "Paid with" on My orders), `orders.provider_reference` (the data provider's own order reference), and a unique `wallet_transactions.reference` (the thing that stops one payment being credited twice);
+- adds four functions that only your automations (the service key) can run: `credit_wallet_from_payment` (work out the credit from what Paystack says was paid, once per reference), `place_wallet_order` (take the bundle's price from `bundles`, debit and create the order in one step), `complete_wallet_order`, and `refund_wallet_order` (give the money back once);
+- stops the browser from changing any balance, order or wallet line. It can still read its own rows.
+
+The last query in the file lists every policy on `users`, `orders` and `wallet_transactions`. If one of them lets `anon` or `public` read, remove it.
+
+The automations that use these functions:
+
+- **Top-up** (inside your existing Paystack flow): a payment whose `metadata.type` is `wallet_funding` is verified with Paystack and credited with `credit_wallet_from_payment`, then the flow stops. The fee percentage in that step must match `VITE_WALLET_FEE_PERCENT` (3).
+- **Pay from wallet** (`VITE_WALLET_PURCHASE_URL`, its own flow): the site posts `{ user_jwt, user_id, bundle_id, recipient_phone }`. The flow confirms the login token with Supabase, makes up an order number (`SFW-…`), calls `place_wallet_order`, sends the data, then calls `complete_wallet_order`, or `refund_wallet_order` if the data provider definitely refused it. Once the provider *accepts* the order the flow stores the provider's reference (`set_wallet_order_provider_ref`) and leaves the order `processing`: accepted is not the same as arrived. A second flow, "Wallet delivery check", runs every 5 minutes, asks the provider for each processing order's status and settles them in one call (`settle_wallet_orders`): delivered becomes `completed`, failed / refunded / cancelled is refunded, anything else is left alone, and an order still waiting after an hour sends you one SMS. If the provider's answer to the purchase is unclear (a timeout, say) the order is also left `processing` and you are alerted, so nobody is refunded for data that may have arrived.
+  - `place_wallet_order` never fails for an ordinary reason. It answers `ok = false` with an `error_code` (`insufficient_balance`, `bundle_unavailable`, `bad_phone`, `duplicate_order`, `user_not_found`, `bad_request`) and the flow turns that into a message.
+  - The flow answers with status 200 and `{ "ok": true, "order_id": "SFW-…" }`, or `{ "ok": false, "error": "…message for the customer…" }`. The site shows that message and stays on the page; on success the "payment status" page finds the order by its number.
+
 ## Things you need to finish before taking real money
 
 1. **Results checkers need a backend.** The original Babor project called `https://your-backend-url.com/api/verify-payment`, which never existed. Point `VITE_RESULTS_VERIFY_URL` at a service that verifies the Paystack reference **server-side** and returns `{ "pins": [{ "pin": "...", "serial": "..." }] }`. The page sends `{ reference, product_id, quantity, delivery, delivery_to, email, phone }` (see "Results checkers: prices from Supabase, and SMS or email delivery" above). Until then the page shows a clear error and keeps the payment reference so the customer can contact you. Also set `VITE_RESULTS_PAYSTACK_KEY` to a live key when you go live: the default is a test key.
