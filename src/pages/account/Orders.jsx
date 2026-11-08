@@ -4,6 +4,7 @@ import { Button, Empty, NetworkChip, PageHeader, StatusBadge } from '../../compo
 import { useAuth } from '../../context/Auth';
 import { usePageTitle } from '../../hooks/usePageTitle';
 import { accountsApi } from '../../services/rest';
+import { nudgeDeliveryCheck } from '../../services/webhooks';
 import { dateTime, money } from '../../lib/format';
 import { normalizeNetwork } from '../../config/site';
 
@@ -51,16 +52,29 @@ export default function Orders() {
 
   useEffect(() => {
     let off = false;
-    authed((t) => accountsApi.select('orders', `?user_id=eq.${user.id}&order=created_at.desc`, t))
-      .then((rows) => !off && setOrders(rows || []))
-      .catch(() => {
-        if (!off) {
-          setFailed(true);
-          setOrders([]);
-        }
-      });
+    let timer = null;
+    const load = (first) =>
+      authed((t) => accountsApi.select('orders', `?user_id=eq.${user.id}&order=created_at.desc`, t))
+        .then((rows) => {
+          if (off) return;
+          setOrders(rows || []);
+          // Wallet orders still on their way: ask the delivery check to look, then reload the list once it has had time.
+          const onTheWay = (rows || []).some((o) => o.payment_method === 'wallet' && String(o.status).toLowerCase() === 'processing');
+          if (first && onTheWay) {
+            nudgeDeliveryCheck();
+            timer = setTimeout(() => load(false), 9000);
+          }
+        })
+        .catch(() => {
+          if (!off && first) {
+            setFailed(true);
+            setOrders([]);
+          }
+        });
+    load(true);
     return () => {
       off = true;
+      clearTimeout(timer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

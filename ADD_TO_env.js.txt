@@ -1,0 +1,6 @@
+In YOUR src/config/env.js, inside the `hooks: { ... }` block, add this one line (for example right under the walletPurchase entry):
+
+    walletDeliveryCheck: val('VITE_WALLET_DELIVERY_CHECK_URL', 'https://cloud.activepieces.com/api/v1/webhooks/akxF289zmuWGbP9e5sqEF'),
+
+Add it only AFTER the "Wallet delivery check" flow is published in its new "website asks" form.
+Until the line exists, the site simply does not call the flow.

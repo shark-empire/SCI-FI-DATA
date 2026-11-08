@@ -5,6 +5,7 @@ import { useToast } from '../context/Toast';
 import { usePageTitle } from '../hooks/usePageTitle';
 import { Link, useLocation } from '../router';
 import { dataApi, accountsApi } from '../services/rest';
+import { nudgeDeliveryCheck } from '../services/webhooks';
 import { useAuth } from '../context/Auth';
 import { recentRefs } from '../lib/storage';
 import { moneyFromPesewas, money } from '../lib/format';
@@ -77,6 +78,39 @@ export default function DataSuccess() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [ref, orderId, authed],
   );
+
+  // Wallet orders: the bundle is only "Delivered" once the delivery check has seen Datamart finish it. While this page
+  // stays open, ask for a check after 1, 2.5 and 4.5 minutes (few on purpose: each one uses an automation task),
+  // then read the order again a few seconds later.
+  const authedRef = useRef(authed);
+  authedRef.current = authed;
+  const status = String(receipt?.status || '').toLowerCase();
+  const delivered = status === 'completed';
+  const refunded = status === 'failed' || status === 'refunded' || status === 'cancelled';
+  useEffect(() => {
+    if (!orderId || state !== 'done' || delivered || refunded) return undefined;
+    const timers = [];
+    const refresh = async () => {
+      try {
+        const rows = await authedRef.current((t) =>
+          accountsApi.select('orders', `?order_id=eq.${encodeURIComponent(orderId)}&select=status&limit=1`, t),
+        );
+        const next = rows?.[0]?.status;
+        if (next) {
+          setReceipt((r) => (r ? { ...r, status: next } : r));
+          if (String(next).toLowerCase() === 'completed') toast.ok('Your data has been delivered.');
+        }
+      } catch {
+        /* the next check will try again */
+      }
+    };
+    [60000, 150000, 270000].forEach((ms) => {
+      timers.push(setTimeout(nudgeDeliveryCheck, ms));
+      timers.push(setTimeout(refresh, ms + 9000));
+    });
+    return () => timers.forEach(clearTimeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderId, state, delivered, refunded]);
 
   useEffect(() => {
     if (!identifier) return undefined;
@@ -153,7 +187,13 @@ export default function DataSuccess() {
               bottom={
                 <ol className="timeline">
                   <li className="timeline__item is-done"><LuCircleCheck aria-hidden="true" /><div><strong>Payment confirmed</strong><span>{orderId ? 'Paid from your wallet.' : 'Paystack verified your payment.'}</span></div></li>
-                  <li className="timeline__item is-active"><LuRadioTower aria-hidden="true" /><div><strong>Sending to the network</strong><span>The bundle usually arrives within 2 minutes.</span></div></li>
+                  {delivered ? (
+                    <li className="timeline__item is-done"><LuCircleCheck aria-hidden="true" /><div><strong>Delivered</strong><span>The data has arrived.</span></div></li>
+                  ) : refunded ? (
+                    <li className="timeline__item is-active"><LuCircleAlert aria-hidden="true" /><div><strong>Could not be delivered</strong><span>Your money is back in your wallet. Please try again.</span></div></li>
+                  ) : (
+                    <li className="timeline__item is-active"><LuRadioTower aria-hidden="true" /><div><strong>Sending to the network</strong><span>The bundle usually arrives within 2 minutes.</span></div></li>
+                  )}
                 </ol>
               }
             />
