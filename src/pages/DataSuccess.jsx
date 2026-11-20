@@ -80,8 +80,9 @@ export default function DataSuccess() {
   );
 
   // Wallet orders: the bundle is only "Delivered" once the delivery check has seen Datamart finish it. While this page
-  // stays open, ask for a check after 1, 2.5 and 4.5 minutes (few on purpose: each one uses an automation task),
-  // then read the order again a few seconds later.
+  // stays open it looks at the order after 1, 2.5 and 4.5 minutes. Looking is a free database read; the automation is
+  // asked for a check ONLY if the order is still "processing" (someone else's visit may already have settled it, and
+  // then nothing is sent, so no automation run is used). After asking, it reads the order again a few seconds later.
   const authedRef = useRef(authed);
   authedRef.current = authed;
   const status = String(receipt?.status || '').toLowerCase();
@@ -90,25 +91,32 @@ export default function DataSuccess() {
   useEffect(() => {
     if (!orderId || state !== 'done' || delivered || refunded) return undefined;
     const timers = [];
-    const refresh = async () => {
+    let off = false;
+    const read = async () => {
       try {
         const rows = await authedRef.current((t) =>
           accountsApi.select('orders', `?order_id=eq.${encodeURIComponent(orderId)}&select=status&limit=1`, t),
         );
         const next = rows?.[0]?.status;
-        if (next) {
+        if (next && !off) {
           setReceipt((r) => (r ? { ...r, status: next } : r));
           if (String(next).toLowerCase() === 'completed') toast.ok('Your data has been delivered.');
         }
+        return String(next || '').toLowerCase();
       } catch {
-        /* the next check will try again */
+        return ''; /* unknown: do not ask for a check */
       }
     };
-    [60000, 150000, 270000].forEach((ms) => {
-      timers.push(setTimeout(nudgeDeliveryCheck, ms));
-      timers.push(setTimeout(refresh, ms + 9000));
-    });
-    return () => timers.forEach(clearTimeout);
+    const tick = async () => {
+      if ((await read()) !== 'processing' || off) return;
+      nudgeDeliveryCheck();
+      timers.push(setTimeout(read, 9000));
+    };
+    [60000, 150000, 270000].forEach((ms) => timers.push(setTimeout(tick, ms)));
+    return () => {
+      off = true;
+      timers.forEach(clearTimeout);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId, state, delivered, refunded]);
 
